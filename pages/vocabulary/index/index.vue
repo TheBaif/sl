@@ -21,46 +21,10 @@
     <scroll-view scroll-y class="vocabulary-content" enable-back-to-top>
       <!-- Top Categories -->
       <view class="featured-categories" v-if="!loading">
-        <text class="section-title">学习分类</text>
         
-        <scroll-view scroll-x class="category-scroll">
-          <view 
-            class="featured-item"
-            v-for="(category, index) in featuredCategories"
-            :key="index"
-            @tap="navigateToSubcategory(category)"
-          >
-            <view class="featured-icon" :class="`icon-color-${index % 4}`">
-              <text class="iconfont">{{ category.icon }}</text>
-            </view>
-            <text class="featured-name">{{ category.name }}</text>
-          </view>
-        </scroll-view>
       </view>
       
-      <!-- Recommendation Section -->
-      <view class="recommendation-section" v-if="!loading && recommendedSigns.length > 0">
-        <view class="section-header">
-          <text class="section-title">推荐学习</text>
-          <text class="view-all" @tap="navigateToRecommendation">查看全部</text>
-        </view>
-        
-        <scroll-view scroll-x class="recommendation-scroll">
-          <view 
-            class="recommendation-item" 
-            v-for="(item, index) in recommendedSigns" 
-            :key="index"
-            @tap="viewSignDetail(item)"
-          >
-            <image 
-              :src="item.imageSrc || '/static/placeholder-sign.png'" 
-              class="recommendation-image"
-              mode="aspectFill"
-            ></image>
-            <text class="recommendation-name">{{ item.name }}</text>
-          </view>
-        </scroll-view>
-      </view>
+      
       
       <!-- Main Categories -->
       <view class="main-categories" v-if="!loading && parentCategories.length > 0">

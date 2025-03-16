@@ -78,6 +78,9 @@
       ></uni-popup-dialog>
     </uni-popup>
 	
+	<button class="custom-btn" @tap="navigateToCustomSign">添加自定义词汇</button>
+	
+	
   </view>
 </template>
 
@@ -296,6 +299,11 @@ export default {
         */
       })
     },
+	navigateToCustomSign() {
+	  uni.navigateTo({
+	    url: '/pages/custom-sign/custom-sign'
+	  })
+	},
     
     // 更新头像URL - 使用PATCH请求
     updateAvatarUrl(avatarUrl) {

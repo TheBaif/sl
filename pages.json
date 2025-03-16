@@ -86,6 +86,20 @@
 			{
 				"navigationBarTitleText" : ""
 			}
+		},
+		{
+			"path" : "pages/custom-sign/custom-sign",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/recognition/recognition",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
 		}
 		
 		
