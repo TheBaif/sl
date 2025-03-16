@@ -39,6 +39,25 @@
         </view>
       </view>
       
+      <view class="info-section">
+        <view class="info-item">
+            <text class="label">学习进度</text>
+            <view class="value-container">
+              <text class="value">查看详情</text>
+              <uni-icons type="right" size="18" color="#999" @click="navigateToProgressDashboard"></uni-icons>
+            </view>
+        </view>
+        
+        <!-- 添加手语识别入口 -->
+        <view class="info-item">
+            <text class="label">手语识别</text>
+            <view class="value-container">
+              <text class="value">体验实时识别</text>
+              <uni-icons type="right" size="18" color="#999" @click="navigateToRecognition"></uni-icons>
+            </view>
+        </view>
+      </view>
+      
       <view class="action-buttons">
         <button class="logout-btn" @tap="handleLogout">退出登录</button>
       </view>
@@ -77,10 +96,6 @@
         @confirm="handleUpdateEmail"
       ></uni-popup-dialog>
     </uni-popup>
-	
-	<button class="custom-btn" @tap="navigateToCustomSign">添加自定义词汇</button>
-	
-	
   </view>
 </template>
 
@@ -163,11 +178,19 @@ export default {
         this.loading = false
       }
     },
-	navigateToProgressDashboard() {
-	  uni.navigateTo({
-	    url: '/pages/progress-dashboard/progress-dashboard'
-	  })
-	},
+    
+    navigateToProgressDashboard() {
+      uni.navigateTo({
+        url: '/pages/progress-dashboard/progress-dashboard'
+      })
+    },
+    
+    // 添加导航到手语识别页面的方法
+    navigateToRecognition() {
+      uni.navigateTo({
+        url: '/pages/recognition/recognition'
+      })
+    },
     
     // 通用GET请求方法
     requestGet(url) {
@@ -299,11 +322,6 @@ export default {
         */
       })
     },
-	navigateToCustomSign() {
-	  uni.navigateTo({
-	    url: '/pages/custom-sign/custom-sign'
-	  })
-	},
     
     // 更新头像URL - 使用PATCH请求
     updateAvatarUrl(avatarUrl) {
