@@ -1,67 +1,130 @@
 <template>
-  <view class="page-container">
-    <!-- 页面标题 -->
-    <view class="page-header">
-      <text class="header-title">手语词库</text>
-      <text class="header-subtitle">探索丰富的手语词汇世界</text>
-    </view>
-    
-    <!-- 主分类列表 -->
-    <view class="category-section" v-if="!loading && parentCategories.length > 0">
-      <view class="section-header">
-        <text class="section-title">手语分类</text>
-        <view class="section-divider"></view>
+  <view class="vocabulary-container">
+    <!-- Header with Title and Search -->
+    <view class="vocabulary-header">
+      <view class="header-top">
+        <view class="back-button" @tap="navigateBack">
+          <text class="iconfont">&#xe679;</text>
+        </view>
+        <text class="header-title">手语词库</text>
+        <view class="search-button" @tap="navigateToSearch">
+          <text class="iconfont">&#xe61c;</text>
+        </view>
       </view>
       
-      <view class="category-list">
-        <view 
-          class="category-item" 
-          v-for="(item, index) in displayedParentCategories" 
-          :key="index"
-          @tap="navigateToSubcategory(item)"
-        >
-          <view class="category-content">
-            <text class="category-name">{{ item.name }}</text>
+      <view class="header-subtitle">
+        <text>探索丰富的手语词汇世界</text>
+      </view>
+    </view>
+    
+    <!-- Main Content -->
+    <scroll-view scroll-y class="vocabulary-content" enable-back-to-top>
+      <!-- Top Categories -->
+      <view class="featured-categories" v-if="!loading">
+        <text class="section-title">学习分类</text>
+        
+        <scroll-view scroll-x class="category-scroll">
+          <view 
+            class="featured-item"
+            v-for="(category, index) in featuredCategories"
+            :key="index"
+            @tap="navigateToSubcategory(category)"
+          >
+            <view class="featured-icon" :class="`icon-color-${index % 4}`">
+              <text class="iconfont">{{ category.icon }}</text>
+            </view>
+            <text class="featured-name">{{ category.name }}</text>
           </view>
-          <view class="category-arrow">
-            <text>›</text>
+        </scroll-view>
+      </view>
+      
+      <!-- Recommendation Section -->
+      <view class="recommendation-section" v-if="!loading && recommendedSigns.length > 0">
+        <view class="section-header">
+          <text class="section-title">推荐学习</text>
+          <text class="view-all" @tap="navigateToRecommendation">查看全部</text>
+        </view>
+        
+        <scroll-view scroll-x class="recommendation-scroll">
+          <view 
+            class="recommendation-item" 
+            v-for="(item, index) in recommendedSigns" 
+            :key="index"
+            @tap="viewSignDetail(item)"
+          >
+            <image 
+              :src="item.imageSrc || '/static/placeholder-sign.png'" 
+              class="recommendation-image"
+              mode="aspectFill"
+            ></image>
+            <text class="recommendation-name">{{ item.name }}</text>
+          </view>
+        </scroll-view>
+      </view>
+      
+      <!-- Main Categories -->
+      <view class="main-categories" v-if="!loading && parentCategories.length > 0">
+        <view class="section-header">
+          <text class="section-title">全部分类</text>
+        </view>
+        
+        <view class="category-grid">
+          <view
+            class="category-card"
+            v-for="(category, index) in displayedParentCategories"
+            :key="index"
+            @tap="navigateToSubcategory(category)"
+          >
+            <view class="category-icon" :class="`bg-color-${index % 5}`">
+              <text class="iconfont">{{ getCategoryIcon(index) }}</text>
+            </view>
+            <view class="category-info">
+              <text class="category-name">{{ category.name }}</text>
+              <text class="category-desc">{{ getCategoryDesc(category) }}</text>
+            </view>
+            <text class="category-arrow">›</text>
+          </view>
+        </view>
+        
+        <!-- Pagination -->
+        <view class="pagination" v-if="parentCategories.length > parentPageSize">
+          <view class="page-controls">
+            <view 
+              class="page-btn" 
+              :class="{ disabled: parentCurrentPage <= 1 }" 
+              @tap="goToParentPrevPage"
+            >
+              <text class="iconfont">&#xe679;</text>
+            </view>
+            <view class="page-indicator">
+              <text>{{ parentCurrentPage }}/{{ parentTotalPages }}</text>
+            </view>
+            <view 
+              class="page-btn" 
+              :class="{ disabled: parentCurrentPage >= parentTotalPages }" 
+              @tap="goToParentNextPage"
+            >
+              <text class="iconfont" style="transform: rotate(180deg)">&#xe679;</text>
+            </view>
           </view>
         </view>
       </view>
       
-      <!-- 优化后的分页按钮 -->
-      <view class="pagination">
-        <view class="page-controls">
-          <view class="page-btn first-last-btn" :class="{ disabled: parentCurrentPage <= 1 }" @tap="goToParentFirstPage">
-            <text>首页</text>
-          </view>
-          <view class="page-btn" :class="{ disabled: parentCurrentPage <= 1 }" @tap="goToParentPrevPage">
-            <text>上一页</text>
-          </view>
-          <view class="page-info">
-            <text>{{ parentCurrentPage }}/{{ parentTotalPages }}</text>
-          </view>
-          <view class="page-btn" :class="{ disabled: parentCurrentPage >= parentTotalPages }" @tap="goToParentNextPage">
-            <text>下一页</text>
-          </view>
-          <view class="page-btn first-last-btn" :class="{ disabled: parentCurrentPage >= parentTotalPages }" @tap="goToParentLastPage">
-            <text>尾页</text>
-          </view>
+      <!-- Loading State -->
+      <view v-if="loading" class="loading-state">
+        <view class="loader"></view>
+        <text>加载词库中...</text>
+      </view>
+      
+      <!-- Empty State -->
+      <view v-if="!loading && parentCategories.length === 0" class="empty-state">
+        <image src="/static/empty.png" mode="aspectFit" class="empty-image"></image>
+        <text class="empty-text">暂无词库数据</text>
+        <view class="retry-button" @tap="fetchParentCategories">
+          <text>重新加载</text>
         </view>
       </view>
-    </view>
-    
-    <!-- 加载状态 -->
-    <view class="loading-container" v-if="loading">
-      <view class="loader"></view>
-      <text class="loading-text">正在加载...</text>
-    </view>
-    
-    <!-- 空状态 -->
-    <view class="empty-container" v-if="!loading && parentCategories.length === 0">
-      <image src="/static/empty.png" mode="aspectFit" class="empty-image"></image>
-      <text class="empty-text">暂无词库数据</text>
-    </view>
+    </scroll-view>
   </view>
 </template>
 
@@ -71,19 +134,35 @@ import http from '@/utils/request.js'
 export default {
   data() {
     return {
-      loading: false,
+      loading: true,
       parentCategories: [], 
       allChildCategories: [],
       signDataByParentId: {},
+      recommendedSigns: [],
       
       // 分页相关
       parentCurrentPage: 1,
-      parentPageSize: 8
+      parentPageSize: 6,
+      
+      // 特色分类
+      featuredCategories: [
+        { id: 'daily', name: '日常用语', icon: '&#xe65c;' },
+        { id: 'beginner', name: '初学必备', icon: '&#xe665;' },
+        { id: 'family', name: '家庭生活', icon: '&#xe66a;' },
+        { id: 'work', name: '工作场景', icon: '&#xe667;' }
+      ]
     }
   },
+  
   onLoad() {
     this.checkLogin();
   },
+  
+  onShow() {
+    this.checkLogin();
+    this.getRecommendations();
+  },
+  
   computed: {
     // 父分类总页数
     parentTotalPages() {
@@ -97,7 +176,12 @@ export default {
       return this.parentCategories.slice(start, end);
     }
   },
+  
   methods: {
+    navigateBack() {
+      uni.navigateBack();
+    },
+    
     // 检查登录状态
     checkLogin() {
       const token = uni.getStorageSync('token');
@@ -134,7 +218,7 @@ export default {
           this.parentCategories = res.data.data.map(item => {
             return {
               ...item,
-              type: 'parent', // 添加类型标识，用于跳转逻辑
+              type: 'parent',
               pinyin: '', 
               gesture: '', 
               imageSrc: '', 
@@ -146,6 +230,8 @@ export default {
         }
       } catch (err) {
         this.handleRequestError('请求失败: ' + (err.message || err));
+        // 使用模拟数据作为后备
+        this.parentCategories = this.getMockParentCategories();
       } finally {
         this.loading = false;
       }
@@ -161,7 +247,7 @@ export default {
           this.allChildCategories = res.data.data.map(item => {
             return {
               ...item,
-              type: 'child', // 添加类型标识，用于跳转逻辑
+              type: 'child',
               pinyin: '', 
               gesture: '', 
               imageSrc: '', 
@@ -177,6 +263,35 @@ export default {
       } catch (err) {
         this.handleRequestError('请求失败: ' + (err.message || err));
       }
+    },
+    
+    // 获取推荐内容
+    async getRecommendations() {
+      try {
+        const res = await http.get('/learning/recommendations', {
+          params: { limit: 10 }
+        });
+        
+        if (res.statusCode === 200 && res.data.code === 0) {
+          this.recommendedSigns = res.data.data || [];
+        } else {
+          // 使用模拟数据作为后备
+          this.recommendedSigns = this.getMockRecommendations();
+        }
+      } catch (error) {
+        console.error('获取推荐失败:', error);
+        // 使用模拟数据作为后备
+        this.recommendedSigns = this.getMockRecommendations();
+      }
+    },
+    
+    // 处理请求错误
+    handleRequestError(message, err = null) {
+      console.error(message, err);
+      uni.showToast({
+        title: message,
+        icon: 'none'
+      });
     },
     
     // 根据父分类ID分组子分类
@@ -199,29 +314,51 @@ export default {
       });
     },
     
-    // 处理请求错误
-    handleRequestError(message, err = null) {
-      console.error(message, err);
-      this.loading = false;
-      uni.showToast({
-        title: message,
-        icon: 'none'
+    // 导航到子分类页面
+    navigateToSubcategory(item) {
+      let parentId = item.id;
+      let parentName = item.name;
+      
+      // 处理特色分类
+      if (item.id === 'daily' || item.id === 'beginner' || item.id === 'family' || item.id === 'work') {
+        // 这里可以根据特色分类ID映射到实际的父分类ID
+        // 或者直接跳转到相关内容页面
+        uni.showToast({
+          title: '该功能正在开发中',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      uni.navigateTo({
+        url: `/pages/vocabulary/subcategory/subcategory?parentId=${parentId}&parentName=${encodeURIComponent(parentName)}`
       });
     },
     
-    // 导航到子分类页面
-    navigateToSubcategory(item) {
+    // 查看手语详情
+    viewSignDetail(item) {
+      const results = [item];
+      uni.setStorageSync('searchResults', results);
       uni.navigateTo({
-        url: `/pages/vocabulary/subcategory/subcategory?parentId=${item.id}&parentName=${encodeURIComponent(item.name)}`
+        url: `/pages/detail/detail?index=0`
+      });
+    },
+    
+    // 跳转到搜索页面
+    navigateToSearch() {
+      uni.navigateTo({
+        url: '/pages/search/search'
+      });
+    },
+    
+    // 跳转到推荐页面
+    navigateToRecommendation() {
+      uni.navigateTo({
+        url: '/pages/recommendation/recommendation'
       });
     },
     
     // 父分类分页控制方法
-    goToParentFirstPage() {
-      if (this.parentCurrentPage <= 1 || this.loading) return;
-      this.parentCurrentPage = 1;
-    },
-    
     goToParentPrevPage() {
       if (this.parentCurrentPage <= 1 || this.loading) return;
       this.parentCurrentPage--;
@@ -232,214 +369,381 @@ export default {
       this.parentCurrentPage++;
     },
     
-    goToParentLastPage() {
-      if (this.parentCurrentPage >= this.parentTotalPages || this.loading) return;
-      this.parentCurrentPage = this.parentTotalPages;
+    // 根据索引获取分类图标
+    getCategoryIcon(index) {
+      const icons = [
+        '&#xe65c;', // 日常
+        '&#xe665;', // 学习
+        '&#xe66a;', // 家庭
+        '&#xe667;', // 工作
+        '&#xe669;', // 娱乐
+        '&#xe66b;'  // 情感
+      ];
+      return icons[index % icons.length];
+    },
+    
+    // 获取分类描述
+    getCategoryDesc(category) {
+      // 如果分类有子分类，返回子分类数量
+      const childCount = this.signDataByParentId[category.id] ? this.signDataByParentId[category.id].length : 0;
+      return `包含 ${childCount} 个子类`;
+    },
+    
+    // 模拟父分类数据
+    getMockParentCategories() {
+      return [
+        { id: 1, name: '日常用语', type: 'parent' },
+        { id: 2, name: '基础手语', type: 'parent' },
+        { id: 3, name: '家庭生活', type: 'parent' },
+        { id: 4, name: '工作场景', type: 'parent' },
+        { id: 5, name: '社交礼仪', type: 'parent' },
+        { id: 6, name: '情感表达', type: 'parent' },
+        { id: 7, name: '数字时间', type: 'parent' },
+        { id: 8, name: '旅行交通', type: 'parent' }
+      ];
+    },
+    
+    // 模拟推荐数据
+    getMockRecommendations() {
+      return [
+        { id: 1, name: '你好', pinyin: 'nǐ hǎo', imageSrc: '/static/signs/hello.png' },
+        { id: 2, name: '谢谢', pinyin: 'xiè xiè', imageSrc: '/static/signs/thanks.png' },
+        { id: 3, name: '再见', pinyin: 'zài jiàn', imageSrc: '/static/signs/goodbye.png' },
+        { id: 4, name: '朋友', pinyin: 'péng yǒu', imageSrc: '/static/signs/friend.png' },
+        { id: 5, name: '家人', pinyin: 'jiā rén', imageSrc: '/static/signs/family.png' }
+      ];
     }
   }
 }
 </script>
 
 <style lang="scss">
-.page-container {
-  padding: 30rpx;
-  background-color: #f8f8f8;
+.vocabulary-container {
   min-height: 100vh;
+  background-color: #f8f8f8;
+  display: flex;
+  flex-direction: column;
   
-  .page-header {
-    margin-bottom: 30rpx;
-    text-align: center;
-    padding: 30rpx 0;
+  .vocabulary-header {
     background: linear-gradient(to right, #3C8999, #55a5b5);
-    border-radius: 16rpx;
-    box-shadow: 0 6rpx 16rpx rgba(60, 137, 153, 0.2);
+    padding: 30rpx 30rpx 40rpx;
+    color: #fff;
     
-    .header-title {
-      font-size: 40rpx;
-      font-weight: bold;
-      color: #fff;
-      display: block;
-      margin-bottom: 12rpx;
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20rpx;
+      
+      .back-button, .search-button {
+        width: 60rpx;
+        height: 60rpx;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 30rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        .iconfont {
+          font-size: 36rpx;
+          color: #fff;
+        }
+      }
+      
+      .header-title {
+        font-size: 36rpx;
+        font-weight: bold;
+      }
     }
     
     .header-subtitle {
-      font-size: 26rpx;
-      color: rgba(255, 255, 255, 0.8);
+      text-align: center;
+      
+      text {
+        font-size: 26rpx;
+        color: rgba(255, 255, 255, 0.8);
+      }
     }
   }
   
-  .category-section {
-    background-color: #fff;
-    border-radius: 16rpx;
+  .vocabulary-content {
+    flex: 1;
     padding: 30rpx;
-    margin-bottom: 30rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
     
-    .section-header {
+    .section-title {
+      font-size: 32rpx;
+      color: #333;
+      font-weight: bold;
+      display: block;
       margin-bottom: 20rpx;
-      position: relative;
+    }
+    
+    .featured-categories {
+      margin-bottom: 40rpx;
       
-      .section-title {
-        font-size: 34rpx;
-        color: #333;
-        font-weight: bold;
-        display: block;
-        position: relative;
-        z-index: 1;
-      }
-      
-      .section-divider {
-        height: 12rpx;
-        width: 100rpx;
-        background-color: rgba(60, 137, 153, 0.2);
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        z-index: 0;
-        border-radius: 6rpx;
+      .category-scroll {
+        white-space: nowrap;
+        
+        .featured-item {
+          display: inline-block;
+          margin-right: 30rpx;
+          text-align: center;
+          
+          .featured-icon {
+            width: 100rpx;
+            height: 100rpx;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15rpx;
+            
+            .iconfont {
+              font-size: 50rpx;
+              color: #fff;
+            }
+            
+            &.icon-color-0 {
+              background-color: #4dabf7;
+            }
+            
+            &.icon-color-1 {
+              background-color: #74c0fc;
+            }
+            
+            &.icon-color-2 {
+              background-color: #66d9e8;
+            }
+            
+            &.icon-color-3 {
+              background-color: #3bc9db;
+            }
+          }
+          
+          .featured-name {
+            font-size: 26rpx;
+            color: #333;
+          }
+        }
       }
     }
     
-    .category-list {
-      .category-item {
+    .recommendation-section {
+      margin-bottom: 40rpx;
+      
+      .section-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 25rpx 15rpx;
-        border-bottom: 1px solid #f0f0f0;
-        transition: all 0.3s;
+        margin-bottom: 20rpx;
         
-        &:last-child {
-          border-bottom: none;
-        }
-        
-        &:active {
-          background-color: #f9f9f9;
-          transform: scale(0.98);
-        }
-        
-        .category-content {
-          flex: 1;
-          
-          .category-name {
-            font-size: 32rpx;
-            color: #333;
-            display: block;
-          }
-        }
-        
-        .category-arrow {
+        .view-all {
+          font-size: 26rpx;
           color: #3C8999;
-          font-size: 36rpx;
-          font-weight: bold;
-          padding: 0 10rpx;
+        }
+      }
+      
+      .recommendation-scroll {
+        white-space: nowrap;
+        
+        .recommendation-item {
+          display: inline-block;
+          margin-right: 20rpx;
+          width: 180rpx;
+          
+          .recommendation-image {
+            width: 180rpx;
+            height: 180rpx;
+            border-radius: 16rpx;
+            background-color: #f0f0f0;
+            margin-bottom: 10rpx;
+          }
+          
+          .recommendation-name {
+            font-size: 26rpx;
+            color: #333;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
         }
       }
     }
     
-    .pagination {
-      border-top: 1rpx solid #f5f5f5;
-      margin-top: 15rpx;
-      padding-top: 20rpx;
+    .main-categories {
+      .section-header {
+        margin-bottom: 20rpx;
+      }
       
-      .page-controls {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: center;
-        gap: 10rpx;
-        
-        .page-btn {
-          height: 56rpx;
+      .category-grid {
+        .category-card {
+          background-color: #fff;
+          border-radius: 16rpx;
+          padding: 30rpx;
+          margin-bottom: 20rpx;
+          box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
           display: flex;
           align-items: center;
-          justify-content: center;
-          background-color: #3C8999;
-          color: #fff;
-          border-radius: 28rpx;
-          font-size: 24rpx;
-          min-width: 80rpx;
-          padding: 0 15rpx;
-          box-shadow: 0 2rpx 6rpx rgba(60, 137, 153, 0.2);
           
-          &.first-last-btn {
-            min-width: 70rpx;
-            font-size: 22rpx;
+          .category-icon {
+            width: 80rpx;
+            height: 80rpx;
+            border-radius: 16rpx;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20rpx;
+            
+            .iconfont {
+              font-size: 40rpx;
+              color: #fff;
+            }
+            
+            &.bg-color-0 {
+              background-color: #4dabf7;
+            }
+            
+            &.bg-color-1 {
+              background-color: #74c0fc;
+            }
+            
+            &.bg-color-2 {
+              background-color: #a5d8ff;
+            }
+            
+            &.bg-color-3 {
+              background-color: #66d9e8;
+            }
+            
+            &.bg-color-4 {
+              background-color: #3bc9db;
+            }
           }
           
-          &:active {
-            transform: scale(0.95);
+          .category-info {
+            flex: 1;
+            
+            .category-name {
+              font-size: 30rpx;
+              color: #333;
+              font-weight: 500;
+              margin-bottom: 6rpx;
+              display: block;
+            }
+            
+            .category-desc {
+              font-size: 24rpx;
+              color: #999;
+            }
           }
           
-          &.disabled {
-            background-color: #ddd;
-            color: #999;
-            box-shadow: none;
+          .category-arrow {
+            font-size: 32rpx;
+            color: #ccc;
+            margin-left: 10rpx;
           }
         }
+      }
+      
+      .pagination {
+        display: flex;
+        justify-content: center;
+        margin: 30rpx 0;
         
-        .page-info {
-          margin: 0 10rpx;
-          min-width: 70rpx;
-          text-align: center;
+        .page-controls {
+          display: flex;
+          align-items: center;
           
-          text {
-            font-size: 26rpx;
-            color: #666;
+          .page-btn {
+            width: 60rpx;
+            height: 60rpx;
+            background-color: #3C8999;
+            border-radius: 30rpx;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 10rpx;
+            
+            .iconfont {
+              font-size: 32rpx;
+              color: #fff;
+            }
+            
+            &.disabled {
+              background-color: #ccc;
+              opacity: 0.6;
+            }
+          }
+          
+          .page-indicator {
+            min-width: 100rpx;
+            text-align: center;
+            
+            text {
+              font-size: 28rpx;
+              color: #666;
+            }
           }
         }
       }
     }
-  }
-  
-  .loading-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 400rpx;
     
-    .loader {
-      width: 60rpx;
-      height: 60rpx;
-      border-radius: 50%;
-      border: 4rpx solid rgba(60, 137, 153, 0.2);
-      border-top-color: #3C8999;
-      animation: spin 1s infinite linear;
-      margin-bottom: 20rpx;
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 100rpx 0;
+      
+      .loader {
+        width: 60rpx;
+        height: 60rpx;
+        border-radius: 50%;
+        border: 4rpx solid rgba(60, 137, 153, 0.1);
+        border-top-color: #3C8999;
+        animation: spin 1s infinite linear;
+        margin-bottom: 20rpx;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      text {
+        font-size: 28rpx;
+        color: #999;
+      }
     }
     
-    .loading-text {
-      font-size: 28rpx;
-      color: #999;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  }
-  
-  .empty-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 400rpx;
-    background-color: #fff;
-    border-radius: 16rpx;
-    padding: 40rpx;
-    
-    .empty-image {
-      width: 200rpx;
-      height: 200rpx;
-      margin-bottom: 30rpx;
-      opacity: 0.5;
-    }
-    
-    .empty-text {
-      font-size: 28rpx;
-      color: #999;
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 100rpx 0;
+      
+      .empty-image {
+        width: 200rpx;
+        height: 200rpx;
+        margin-bottom: 30rpx;
+        opacity: 0.6;
+      }
+      
+      .empty-text {
+        font-size: 30rpx;
+        color: #999;
+        margin-bottom: 30rpx;
+      }
+      
+      .retry-button {
+        background-color: #3C8999;
+        color: #fff;
+        font-size: 28rpx;
+        padding: 15rpx 40rpx;
+        border-radius: 30rpx;
+      }
     }
   }
 }

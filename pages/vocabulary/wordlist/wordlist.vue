@@ -1,75 +1,129 @@
 <template>
-  <view class="page-container">
-    <!-- 标题区域 -->
-    <view class="page-header">
+  <view class="wordlist-container">
+    <!-- Header with Title -->
+    <view class="wordlist-header">
       <view class="header-top">
         <view class="back-button" @tap="navigateBack">
           <text class="iconfont">&#xe679;</text>
         </view>
-        <view class="page-title">{{ childName || parentName || '词汇列表' }}</view>
-      </view>
-      <view class="header-subtitle" v-if="childName && parentName">{{ parentName }} > {{ childName }}</view>
-    </view>
-    
-    <!-- 加载状态 -->
-    <view v-if="loading" class="loading-section">
-      <view class="loader"></view>
-      <text>加载中...</text>
-    </view>
-    
-    <!-- 错误信息 -->
-    <view v-else-if="errorMessage" class="error-section">
-      <text>{{ errorMessage }}</text>
-      <view class="retry-btn" @tap="loadWordList">重试</view>
-    </view>
-    
-    <!-- 词汇列表 -->
-    <view v-else>
-      <!-- 列表内容 -->
-      <view v-if="wordList.length > 0" class="word-list">
-        <view 
-          class="word-item" 
-          v-for="(item, index) in displayedWords" 
-          :key="index"
-          @tap="goToDetail(getDisplayedIndex(index))"
-        >
-          <view class="item-content">
-            <text class="item-name">{{item.name}}</text>
-            <text class="item-pinyin" v-if="item.pinyin">{{item.pinyin}}</text>
-          </view>
-          <view class="item-indicator">
-            <text class="item-arrow">›</text>
-          </view>
-        </view>
-        
-        <!-- 优化后的分页控制 -->
-        <view class="pagination">
-          <view class="page-controls">
-            <view class="page-btn first-last-btn" :class="{ disabled: currentPage <= 1 }" @tap="goToFirstPage">
-              <text>首页</text>
-            </view>
-            <view class="page-btn" :class="{ disabled: currentPage <= 1 }" @tap="goToPrevPage">
-              <text>上一页</text>
-            </view>
-            <view class="page-info">
-              <text>{{ currentPage }}/{{ totalPages }}</text>
-            </view>
-            <view class="page-btn" :class="{ disabled: currentPage >= totalPages }" @tap="goToNextPage">
-              <text>下一页</text>
-            </view>
-            <view class="page-btn first-last-btn" :class="{ disabled: currentPage >= totalPages }" @tap="goToLastPage">
-              <text>尾页</text>
-            </view>
-          </view>
+        <text class="header-title">{{ childName || parentName || '词汇列表' }}</text>
+        <view class="search-button" @tap="navigateToSearch">
+          <text class="iconfont">&#xe61c;</text>
         </view>
       </view>
       
-      <!-- 空状态 -->
-      <view v-else class="empty-state">
-        <image src="/static/empty.png" mode="aspectFit" class="empty-image"></image>
-        <text>暂无词汇数据</text>
-        <view class="refresh-btn" @tap="loadWordList">重新加载</view>
+      <view class="header-subtitle" v-if="childName && parentName">
+        {{ parentName }} > {{ childName }}
       </view>
+    </view>
+    
+    <!-- Main Content -->
+    <view class="wordlist-content">
+      <!-- Loading State -->
+      <view v-if="loading" class="loading-state">
+        <view class="loader"></view>
+        <text>加载词汇中...</text>
+      </view>
+      
+      <!-- Error Message -->
+      <view v-else-if="errorMessage" class="error-state">
+        <image src="/static/error.png" mode="aspectFit" class="error-image"></image>
+        <text class="error-text">{{ errorMessage }}</text>
+        <view class="retry-button" @tap="loadWordList">
+          <text>重试</text>
+        </view>
+      </view>
+      
+      <!-- Content Area -->
+      <block v-else>
+        <!-- Empty State -->
+        <view v-if="wordList.length === 0" class="empty-state">
+          <image src="/static/empty.png" mode="aspectFit" class="empty-image"></image>
+          <text class="empty-title">暂无词汇</text>
+          <text class="empty-desc">该分类下暂时没有词汇</text>
+        </view>
+        
+        <!-- Word List -->
+        <view v-else class="words-list-container">
+          <view class="list-header">
+            <view class="list-info">
+              <text class="list-title">词汇列表</text>
+              <text class="list-count">共 {{ wordList.length }} 个</text>
+            </view>
+            
+            <view class="sort-filter">
+              <picker :value="sortIndex" :range="sortOptions" @change="changeSort">
+                <view class="sort-selector">
+                  <text>{{ sortOptions[sortIndex] }}</text>
+                  <text class="iconfont">&#xe64b;</text>
+                </view>
+              </picker>
+            </view>
+          </view>
+          
+          <!-- Words Grid -->
+          <view class="words-grid">
+            <view 
+              class="word-card" 
+              v-for="(item, index) in displayedWords" 
+              :key="index"
+              @tap="goToDetail(getDisplayedIndex(index))"
+            >
+              <view class="word-media">
+                <image 
+                  :src="item.imageSrc || '/static/placeholder-sign.png'" 
+                  mode="aspectFill"
+                  class="word-image"
+                ></image>
+                <view class="word-video-badge" v-if="item.wordVideoSrc">
+                  <text class="iconfont">&#xe666;</text>
+                </view>
+              </view>
+              <view class="word-info">
+                <text class="word-name">{{ item.name }}</text>
+                <text class="word-pinyin">{{ item.pinyin || '无拼音' }}</text>
+              </view>
+            </view>
+          </view>
+          
+          <!-- Pagination -->
+          <view class="pagination" v-if="totalPages > 1">
+            <view class="page-controls">
+              <view 
+                class="page-btn first-last-btn" 
+                :class="{ disabled: currentPage <= 1 }" 
+                @tap="goToFirstPage"
+              >
+                <text>首页</text>
+              </view>
+              <view 
+                class="page-btn" 
+                :class="{ disabled: currentPage <= 1 }" 
+                @tap="goToPrevPage"
+              >
+                <text>上一页</text>
+              </view>
+              <view class="page-info">
+                <text>{{ currentPage }}/{{ totalPages }}</text>
+              </view>
+              <view 
+                class="page-btn" 
+                :class="{ disabled: currentPage >= totalPages }" 
+                @tap="goToNextPage"
+              >
+                <text>下一页</text>
+              </view>
+              <view 
+                class="page-btn first-last-btn" 
+                :class="{ disabled: currentPage >= totalPages }" 
+                @tap="goToLastPage"
+              >
+                <text>尾页</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </block>
     </view>
   </view>
 </template>
@@ -88,9 +142,12 @@ export default {
       errorMessage: '',
       wordList: [],
       currentPage: 1,
-      pageSize: 10
+      pageSize: 12,
+      sortIndex: 0,
+      sortOptions: ['默认排序', '按名称升序', '按名称降序']
     }
   },
+  
   computed: {
     // 计算总页数
     totalPages() {
@@ -104,6 +161,7 @@ export default {
       return this.wordList.slice(start, end);
     }
   },
+  
   onLoad(options) {
     console.log('词汇列表页接收到的参数:', options);
     
@@ -127,7 +185,18 @@ export default {
     // 先检查登录状态，再加载数据
     this.checkLogin();
   },
+  
   methods: {
+    navigateBack() {
+      uni.navigateBack();
+    },
+    
+    navigateToSearch() {
+      uni.navigateTo({
+        url: '/pages/search/search'
+      });
+    },
+    
     // 检查登录状态
     checkLogin() {
       const token = uni.getStorageSync('token');
@@ -178,7 +247,7 @@ export default {
           console.log('子分类ID:', queryParams.childId, typeof queryParams.childId);
         }
         
-        // 设置分页参数
+        // 设置分页参数 - 一次获取较多数据，前端分页显示
         queryParams.pageNum = 1;
         queryParams.pageSize = 100;
         
@@ -193,7 +262,6 @@ export default {
         });
         
         console.log('API响应状态:', res.statusCode);
-        console.log('API响应数据类型:', typeof res.data);
         
         if (res.statusCode === 200 && res.data && res.data.code === 0) {
           console.log('API响应详情:', res.data);
@@ -233,6 +301,9 @@ export default {
             console.log('API返回成功但没有数据, 使用模拟数据');
             this.wordList = this.getMockWords();
           }
+          
+          // 按当前排序方式排序
+          this.sortWordList();
         } else {
           console.error('API错误:', res.data ? res.data.message || '获取失败' : '未获取到响应数据');
           throw new Error(res.data ? res.data.message || '获取失败' : '服务器未返回数据');
@@ -265,11 +336,6 @@ export default {
       });
     },
     
-    // 返回上一页
-    navigateBack() {
-      uni.navigateBack();
-    },
-    
     // 分页控制方法
     goToFirstPage() {
       if (this.currentPage <= 1 || this.loading) return;
@@ -291,10 +357,34 @@ export default {
       this.currentPage = this.totalPages;
     },
     
+    // 排序方法
+    changeSort(e) {
+      this.sortIndex = e.detail.value;
+      this.sortWordList();
+    },
+    
+    sortWordList() {
+      switch(this.sortIndex) {
+        case 1: // 按名称升序
+          this.wordList.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+          break;
+        case 2: // 按名称降序
+          this.wordList.sort((a, b) => b.name.localeCompare(a.name, 'zh-CN'));
+          break;
+        default: // 默认排序 (id升序)
+          this.wordList.sort((a, b) => a.id - b.id);
+          break;
+      }
+      
+      // 重置到第一页
+      this.currentPage = 1;
+    },
+    
     // 模拟词汇数据
     getMockWords() {
       return [
         {
+          id: 1,
           name: '你好', 
           pinyin: 'nǐ hǎo', 
           gesture: '右手五指并拢，手心向内|||置于胸前，轻拍两下|||微笑示意', 
@@ -302,6 +392,7 @@ export default {
           wordVideoSrc: '/static/videos/nihao.mp4'
         },
         {
+          id: 2,
           name: '再见', 
           pinyin: 'zài jiàn', 
           gesture: '五指并拢，手掌向前|||左右摆动手腕，示意告别', 
@@ -309,6 +400,7 @@ export default {
           wordVideoSrc: '/static/videos/zaijian.mp4'
         },
         {
+          id: 3,
           name: '朋友', 
           pinyin: 'péng yǒu', 
           gesture: '两手食指勾在一起|||轻轻摇晃，表示连接', 
@@ -316,6 +408,7 @@ export default {
           wordVideoSrc: '/static/videos/pengyou.mp4'
         },
         {
+          id: 4,
           name: '谢谢', 
           pinyin: 'xiè xie', 
           gesture: '右手五指并拢，放于胸前|||向前轻推，表示感谢', 
@@ -323,11 +416,20 @@ export default {
           wordVideoSrc: '/static/videos/xiexie.mp4'
         },
         {
+          id: 5,
           name: '对不起', 
           pinyin: 'duì bù qǐ', 
           gesture: '右手握拳放于胸前|||轻轻画圈，表示歉意', 
           imageSrc: '/static/images/duibuqi.jpg', 
           wordVideoSrc: '/static/videos/duibuqi.mp4'
+        },
+        {
+          id: 6,
+          name: '家人', 
+          pinyin: 'jiā rén', 
+          gesture: '双手合并形成屋顶形状|||表示家的温暖', 
+          imageSrc: '/static/images/jiaren.jpg', 
+          wordVideoSrc: '/static/videos/jiaren.mp4'
         }
       ];
     }
@@ -336,225 +438,271 @@ export default {
 </script>
 
 <style lang="scss">
-.page-container {
-  padding: 30rpx;
-  background-color: #f8f8f8;
+.wordlist-container {
   min-height: 100vh;
+  background-color: #f8f8f8;
+  display: flex;
+  flex-direction: column;
   
-  .page-header {
+  .wordlist-header {
     background: linear-gradient(to right, #3C8999, #55a5b5);
-    padding: 30rpx 20rpx;
-    color: #fff;
-    border-radius: 16rpx;
-    margin-bottom: 30rpx;
-    box-shadow: 0 6rpx 16rpx rgba(60, 137, 153, 0.2);
+    padding: 20rpx 30rpx 30rpx;
     
     .header-top {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      margin-bottom: 10rpx;
+      height: 80rpx;
       
-      .back-button {
-        width: 50rpx;
-        height: 50rpx;
+      .back-button, .search-button {
+        width: 60rpx;
+        height: 60rpx;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 30rpx;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 30rpx;
-        background-color: rgba(255, 255, 255, 0.2);
-        border-radius: 25rpx;
+        
+        .iconfont {
+          font-size: 36rpx;
+          color: #fff;
+        }
       }
       
-      .page-title {
-        font-size: 34rpx;
+      .header-title {
+        font-size: 36rpx;
+        color: #fff;
         font-weight: bold;
-        flex: 1;
-        text-align: center;
-        margin-right: 50rpx; // 平衡左侧返回按钮
       }
     }
     
     .header-subtitle {
-      font-size: 24rpx;
-      color: rgba(255, 255, 255, 0.8);
       text-align: center;
       margin-top: 10rpx;
+      font-size: 24rpx;
+      color: rgba(255, 255, 255, 0.8);
     }
   }
   
-  .loading-section, .error-section {
-    height: 300rpx;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background-color: #fff;
-    border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  .wordlist-content {
+    flex: 1;
+    padding: 30rpx;
     
-    .loader {
-      width: 60rpx;
-      height: 60rpx;
-      border-radius: 50%;
-      border: 4rpx solid rgba(60, 137, 153, 0.2);
-      border-top-color: #3C8999;
-      animation: spin 1s infinite linear;
-      margin-bottom: 20rpx;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    text {
-      color: #999;
-      font-size: 28rpx;
-    }
-    
-    .retry-btn {
-      margin-top: 20rpx;
-      background-color: #3C8999;
-      color: #fff;
-      font-size: 26rpx;
-      padding: 10rpx 30rpx;
-      border-radius: 30rpx;
-      box-shadow: 0 4rpx 8rpx rgba(60, 137, 153, 0.2);
-    }
-  }
-  
-  .word-list {
-    background-color: #fff;
-    border-radius: 16rpx;
-    overflow: hidden;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    
-    .word-item {
+    .loading-state, .error-state, .empty-state {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       align-items: center;
-      padding: 25rpx;
-      position: relative;
-      transition: all 0.3s;
+      justify-content: center;
+      padding: 100rpx 0;
       
-      &:not(:last-child) {
-        border-bottom: 1px solid #f0f0f0;
+      .loader {
+        width: 60rpx;
+        height: 60rpx;
+        border-radius: 50%;
+        border: 4rpx solid rgba(60, 137, 153, 0.1);
+        border-top-color: #3C8999;
+        animation: spin 1s infinite linear;
+        margin-bottom: 20rpx;
       }
       
-      &:active {
-        background-color: #f9f9f9;
-        transform: scale(0.98);
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
       
-      .item-content {
-        flex: 1;
-        
-        .item-name {
-          font-size: 32rpx;
-          color: #333;
-          display: block;
-          margin-bottom: 8rpx;
-          font-weight: 500;
-        }
-        
-        .item-pinyin {
-          font-size: 26rpx;
-          color: #999;
-          display: block;
-        }
+      text {
+        font-size: 28rpx;
+        color: #999;
       }
       
-      .item-indicator {
-        .item-arrow {
-          font-size: 40rpx;
-          color: #3C8999;
-          font-weight: bold;
-        }
+      .error-image, .empty-image {
+        width: 200rpx;
+        height: 200rpx;
+        margin-bottom: 30rpx;
+        opacity: 0.6;
+      }
+      
+      .error-text, .empty-title {
+        font-size: 32rpx;
+        color: #333;
+        margin-bottom: 10rpx;
+      }
+      
+      .empty-desc {
+        font-size: 28rpx;
+        color: #999;
+        margin-bottom: 10rpx;
+      }
+      
+      .retry-button {
+        margin-top: 30rpx;
+        background-color: #3C8999;
+        color: #fff;
+        font-size: 28rpx;
+        padding: 15rpx 40rpx;
+        border-radius: 30rpx;
       }
     }
     
-    .pagination {
-      border-top: 1rpx solid #f5f5f5;
-      margin-top: 15rpx;
-      padding-top: 20rpx;
+    .words-list-container {
+      .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30rpx;
+        
+        .list-info {
+          .list-title {
+            font-size: 32rpx;
+            color: #333;
+            font-weight: bold;
+            margin-right: 15rpx;
+          }
+          
+          .list-count {
+            font-size: 24rpx;
+            color: #999;
+          }
+        }
+        
+        .sort-filter {
+          .sort-selector {
+            display: flex;
+            align-items: center;
+            background-color: #fff;
+            padding: 8rpx 20rpx;
+            border-radius: 30rpx;
+            box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+            
+            text {
+              font-size: 24rpx;
+              color: #666;
+            }
+            
+            .iconfont {
+              font-size: 24rpx;
+              color: #999;
+              margin-left: 10rpx;
+            }
+          }
+        }
+      }
       
-      .page-controls {
+      .words-grid {
         display: flex;
         flex-wrap: wrap;
-        align-items: center;
-        justify-content: center;
-        gap: 10rpx;
+        margin: 0 -10rpx;
         
-        .page-btn {
-          height: 56rpx;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background-color: #3C8999;
-          color: #fff;
-          border-radius: 28rpx;
-          font-size: 24rpx;
-          min-width: 80rpx;
-          padding: 0 15rpx;
-          box-shadow: 0 2rpx 6rpx rgba(60, 137, 153, 0.2);
-          
-          &.first-last-btn {
-            min-width: 70rpx;
-            font-size: 22rpx;
-          }
+        .word-card {
+          width: calc(50% - 20rpx);
+          margin: 10rpx;
+          background-color: #fff;
+          border-radius: 16rpx;
+          overflow: hidden;
+          box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
           
           &:active {
-            transform: scale(0.95);
+            transform: scale(0.98);
           }
           
-          &.disabled {
-            background-color: #ddd;
-            color: #999;
-            box-shadow: none;
+          .word-media {
+            position: relative;
+            
+            .word-image {
+              width: 100%;
+              height: 200rpx;
+              background-color: #f0f0f0;
+            }
+            
+            .word-video-badge {
+              position: absolute;
+              right: 10rpx;
+              bottom: 10rpx;
+              width: 40rpx;
+              height: 40rpx;
+              background-color: rgba(60, 137, 153, 0.8);
+              border-radius: 20rpx;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              
+              .iconfont {
+                font-size: 24rpx;
+                color: #fff;
+              }
+            }
           }
-        }
-        
-        .page-info {
-          margin: 0 10rpx;
-          min-width: 70rpx;
-          text-align: center;
           
-          text {
-            font-size: 26rpx;
-            color: #666;
+          .word-info {
+            padding: 15rpx;
+            
+            .word-name {
+              font-size: 28rpx;
+              color: #333;
+              font-weight: 500;
+              margin-bottom: 6rpx;
+              display: block;
+            }
+            
+            .word-pinyin {
+              font-size: 22rpx;
+              color: #999;
+            }
           }
         }
       }
-    }
-  }
-  
-  .empty-state {
-    padding: 80rpx 0;
-    text-align: center;
-    color: #999;
-    font-size: 28rpx;
-    background-color: #fff;
-    border-radius: 16rpx;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    
-    .empty-image {
-      width: 200rpx;
-      height: 200rpx;
-      margin-bottom: 30rpx;
-      opacity: 0.5;
-    }
-    
-    .refresh-btn {
-      margin-top: 30rpx;
-      background-color: #3C8999;
-      color: #fff;
-      font-size: 28rpx;
-      padding: 12rpx 30rpx;
-      border-radius: 30rpx;
-      box-shadow: 0 4rpx 8rpx rgba(60, 137, 153, 0.2);
+      
+      .pagination {
+        margin: 40rpx 0;
+        
+        .page-controls {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: center;
+          gap: 10rpx;
+          
+          .page-btn {
+            height: 56rpx;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #3C8999;
+            color: #fff;
+            border-radius: 28rpx;
+            font-size: 24rpx;
+            min-width: 80rpx;
+            padding: 0 15rpx;
+            box-shadow: 0 2rpx 6rpx rgba(60, 137, 153, 0.2);
+            
+            &.first-last-btn {
+              min-width: 70rpx;
+              font-size: 22rpx;
+            }
+            
+            &:active {
+              transform: scale(0.95);
+            }
+            
+            &.disabled {
+              background-color: #ddd;
+              color: #999;
+              box-shadow: none;
+            }
+          }
+          
+          .page-info {
+            margin: 0 10rpx;
+            min-width: 70rpx;
+            text-align: center;
+            
+            text {
+              font-size: 26rpx;
+              color: #666;
+            }
+          }
+        }
+      }
     }
   }
 }

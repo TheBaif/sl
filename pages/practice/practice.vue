@@ -1,45 +1,111 @@
 <template>
   <view class="practice-container">
-    <!-- 返回按钮 -->
-    <view class="header">
-      <view class="back-button" @tap="navigateBack">
-        <text class="back-icon">&#xe679;</text>
+    <!-- Header with progress bar -->
+    <view class="practice-header">
+      <view class="header-top">
+        <view class="back-button" @tap="navigateBack">
+          <text class="iconfont">&#xe679;</text>
+        </view>
+        <text class="header-title">手语练习</text>
+        <view class="score-display">
+          <text class="score-text">{{ score }}</text>
+        </view>
+      </view>
+      
+      <view class="progress-bar">
+        <view class="progress-text">
+          <text>{{ currentQuestionIndex + 1 }}/{{ totalQuestions }}</text>
+        </view>
+        <view class="progress-track">
+          <view 
+            class="progress-fill"
+            :style="{ width: `${(currentQuestionIndex + 1) / totalQuestions * 100}%` }"
+          ></view>
+        </view>
       </view>
     </view>
     
-    <!-- 图片区域 -->
-    <view class="image-container">
-      <image 
-        :src="currentQuestion.imageSrc" 
-        mode="aspectFit" 
-        class="sign-image"
-      ></image>
+    <!-- Question Area -->
+    <view class="question-area">
+      <view class="question-card">
+        <image 
+          :src="currentQuestion.imageSrc || '/static/placeholder-sign.png'" 
+          mode="aspectFit" 
+          class="question-image"
+        ></image>
+        
+        <view class="question-prompt">
+          <text class="prompt-text">选择正确的手语名称</text>
+        </view>
+      </view>
     </view>
     
-    <!-- 选项区域 -->
-    <view class="options-container">
+    <!-- Answer Options -->
+    <view class="options-area">
       <view 
         v-for="(option, index) in options" 
         :key="index"
-        class="option-item"
+        class="option-button"
         :class="getOptionClass(option)"
         @tap="selectOption(option)"
       >
         <text class="option-text">{{ option.name }}</text>
-        <text class="option-result" v-if="selectedOption && option.id === currentQuestion.id">✓</text>
-        <text class="option-result" v-else-if="selectedOption && option.id !== currentQuestion.id">✗</text>
+        
+        <view class="option-result" v-if="selectedOption">
+          <text class="iconfont correct-icon" v-if="option.id === currentQuestion.id">&#xe64c;</text>
+          <text class="iconfont wrong-icon" v-else-if="option.id === selectedOption.id">&#xe651;</text>
+        </view>
       </view>
     </view>
     
-    <!-- 下一题按钮 -->
-    <view v-if="selectedOption" class="next-button" @tap="nextQuestion">
-      <text>下一题</text>
+    <!-- Next Button -->
+    <view class="next-area">
+      <view 
+        class="feedback-message"
+        v-if="selectedOption"
+      >
+        <text :class="isCorrect ? 'correct-message' : 'wrong-message'">
+          {{ isCorrect ? '太棒了！回答正确' : '再接再厉！回答错误' }}
+        </text>
+      </view>
+      
+      <button 
+        v-if="selectedOption" 
+        class="next-button"
+        @tap="nextQuestion"
+      >
+        {{ isLastQuestion ? '查看结果' : '下一题' }}
+      </button>
     </view>
     
-    <!-- 进度和分数 -->
-    <view class="progress-bar">
-      <text class="score">得分: {{ score }} / {{ totalQuestions }}</text>
-      <text class="question-count">第 {{ currentQuestionIndex + 1 }} / {{ totalQuestions }} 题</text>
+    <!-- Result Modal -->
+    <view class="result-modal" v-if="showResult">
+      <view class="result-card">
+        <view class="result-header">
+          <text class="result-title">练习完成</text>
+        </view>
+        
+        <view class="result-content">
+          <view class="result-score">
+            <text class="score-number">{{ score }}</text>
+            <text class="score-total">/ {{ totalQuestions }}</text>
+          </view>
+          
+          <view class="result-percentage">
+            <text class="percentage-text">{{ calculatePercentage() }}%</text>
+            <text class="percentage-label">正确率</text>
+          </view>
+          
+          <view class="result-message">
+            <text>{{ getResultMessage() }}</text>
+          </view>
+        </view>
+        
+        <view class="result-actions">
+          <button class="restart-button" @tap="resetPractice">再来一次</button>
+          <button class="back-button" @tap="navigateToHome">返回首页</button>
+        </view>
+      </view>
     </view>
   </view>
 </template>
@@ -54,15 +120,25 @@ export default {
       currentQuestion: null,
       options: [],
       selectedOption: null,
+      isCorrect: false,
       score: 0,
       totalQuestions: 10,
       currentQuestionIndex: 0,
-      loading: true
+      loading: true,
+      showResult: false
     }
   },
+  
+  computed: {
+    isLastQuestion() {
+      return this.currentQuestionIndex === this.totalQuestions - 1
+    }
+  },
+  
   onLoad() {
     this.checkLogin();
   },
+  
   methods: {
     // 检查登录状态
     checkLogin() {
@@ -80,6 +156,18 @@ export default {
         return;
       }
       this.loadData();
+    },
+    
+    // 返回上一页
+    navigateBack() {
+      uni.navigateBack();
+    },
+    
+    // 跳转到首页
+    navigateToHome() {
+      uni.reLaunch({
+        url: '/pages/index/index'
+      });
     },
     
     // 加载所有手语数据
@@ -114,6 +202,9 @@ export default {
           if (this.allSigns.length < 10) {
             this.allSigns = [...this.allSigns, ...this.getMockData()];
           }
+          
+          // 打乱数据顺序
+          this.allSigns = this.shuffleArray([...this.allSigns]);
           
           // 开始练习
           this.prepareQuestion();
@@ -155,6 +246,7 @@ export default {
       
       // 重置选择状态
       this.selectedOption = null;
+      this.isCorrect = false;
     },
     
     // 准备选项
@@ -199,7 +291,9 @@ export default {
       this.selectedOption = option;
       
       // 判断是否正确
-      if (option.id === this.currentQuestion.id) {
+      this.isCorrect = option.id === this.currentQuestion.id;
+      
+      if (this.isCorrect) {
         this.score++;
         // 播放正确音效
         const correctAudio = uni.createInnerAudioContext();
@@ -211,6 +305,21 @@ export default {
         wrongAudio.src = '/static/audio/wrong.mp3'; // 确保项目中有这个音频文件
         wrongAudio.play();
       }
+      
+      // 记录学习进度
+      this.recordLearningProgress();
+    },
+    
+    // 记录学习进度
+    async recordLearningProgress() {
+      try {
+        await http.post('/learning/record', {
+          signId: this.currentQuestion.id,
+          isCorrect: this.isCorrect
+        });
+      } catch (error) {
+        console.error('记录学习进度失败:', error);
+      }
     },
     
     // 获取选项类名
@@ -219,11 +328,11 @@ export default {
       
       if (option.id === this.currentQuestion.id) {
         return 'option-correct';
-      } else if (option.id === this.selectedOption.id) {
-        return 'option-wrong';
+      } else if (option.id === this.selectedOption.id && !this.isCorrect) {
+        return 'option-incorrect';
+      } else {
+        return 'option-disabled';
       }
-      
-      return 'option-disabled';
     },
     
     // 下一题
@@ -232,32 +341,31 @@ export default {
       
       // 检查是否完成所有题目
       if (this.currentQuestionIndex >= this.totalQuestions) {
-        this.showResult();
+        this.showResult = true;
         return;
       }
       
       this.prepareQuestion();
     },
     
-    // 显示最终结果
-    showResult() {
-      const percentage = Math.round((this.score / this.totalQuestions) * 100);
+    // 计算百分比
+    calculatePercentage() {
+      return Math.round((this.score / this.totalQuestions) * 100);
+    },
+    
+    // 获取结果消息
+    getResultMessage() {
+      const percentage = this.calculatePercentage();
       
-      uni.showModal({
-        title: '练习完成',
-        content: `你的得分：${this.score}/${this.totalQuestions} (${percentage}%)`,
-        confirmText: '再来一次',
-        cancelText: '返回',
-        success: (res) => {
-          if (res.confirm) {
-            // 重新开始
-            this.resetPractice();
-          } else {
-            // 返回首页
-            uni.navigateBack();
-          }
-        }
-      });
+      if (percentage >= 90) {
+        return '太棒了！你对手语的掌握非常出色！';
+      } else if (percentage >= 70) {
+        return '很好！你已经掌握了大部分手语！';
+      } else if (percentage >= 50) {
+        return '不错！继续努力，你会更进步的！';
+      } else {
+        return '再接再厉！多加练习，你会进步的！';
+      }
     },
     
     // 重置练习
@@ -265,12 +373,9 @@ export default {
       this.score = 0;
       this.currentQuestionIndex = 0;
       this.selectedOption = null;
+      this.isCorrect = false;
+      this.showResult = false;
       this.loadData(); // 重新加载数据
-    },
-    
-    // 返回上一页
-    navigateBack() {
-      uni.navigateBack();
     },
     
     // 模拟数据
@@ -281,84 +386,84 @@ export default {
           name: '握手',
           pinyin: 'wò shǒu',
           gesture: '双手相握，上下晃动',
-          imageSrc: 'https://example.com/images/handshake.jpg' // 实际使用时替换为本地路径
+          imageSrc: '/static/images/handshake.jpg'
         },
         {
           id: 2,
           name: '你好',
           pinyin: 'nǐ hǎo',
           gesture: '右手在胸前挥动',
-          imageSrc: 'https://example.com/images/hello.jpg'
+          imageSrc: '/static/images/hello.jpg'
         },
         {
           id: 3,
           name: '谢谢',
           pinyin: 'xiè xiè',
           gesture: '右手在胸前轻拍',
-          imageSrc: 'https://example.com/images/thanks.jpg'
+          imageSrc: '/static/images/thanks.jpg'
         },
         {
           id: 4,
           name: '再见',
           pinyin: 'zài jiàn',
           gesture: '挥手示意',
-          imageSrc: 'https://example.com/images/goodbye.jpg'
+          imageSrc: '/static/images/goodbye.jpg'
         },
         {
           id: 5,
           name: '吃饭',
           pinyin: 'chī fàn',
           gesture: '手指并拢靠近嘴',
-          imageSrc: 'https://example.com/images/eat.jpg'
+          imageSrc: '/static/images/eat.jpg'
         },
         {
           id: 6,
           name: '喝水',
           pinyin: 'hē shuǐ',
           gesture: '握拳靠近嘴',
-          imageSrc: 'https://example.com/images/drink.jpg'
+          imageSrc: '/static/images/drink.jpg'
         },
         {
           id: 7,
           name: '睡觉',
           pinyin: 'shuì jiào',
           gesture: '手掌放在脸颊',
-          imageSrc: 'https://example.com/images/sleep.jpg'
+          imageSrc: '/static/images/sleep.jpg'
         },
         {
           id: 8,
           name: '朋友',
           pinyin: 'péng yǒu',
           gesture: '双手食指交叉',
-          imageSrc: 'https://example.com/images/friend.jpg'
+          imageSrc: '/static/images/friend.jpg'
         },
         {
           id: 9,
           name: '家人',
           pinyin: 'jiā rén',
           gesture: '双手合拢',
-          imageSrc: 'https://example.com/images/family.jpg'
+          imageSrc: '/static/images/family.jpg'
         },
         {
           id: 10,
           name: '学习',
           pinyin: 'xué xí',
           gesture: '手指敲额头',
-          imageSrc: 'https://example.com/images/study.jpg'
+          imageSrc: '/static/images/study.jpg'
         },
         {
           id: 11,
           name: '工作',
           pinyin: 'gōng zuò',
           gesture: '双手交替',
-          imageSrc: 'https://example.com/images/work.jpg'
+          imageSrc: '/static/images/work.jpg'
         },
         {
           id: 12,
           name: '爱',
           pinyin: 'ài',
           gesture: '双手交叉放在胸前',
-          imageSrc: 'https://example.com/images/love.jpg'
+          imageSrc: '/static/images/love.jpg'
         }
       ];
     },
@@ -379,128 +484,318 @@ export default {
 <style lang="scss">
 .practice-container {
   min-height: 100vh;
-  background-color: #f5f5f5;
-  padding: 30rpx;
+  background-color: #f8f8f8;
   display: flex;
   flex-direction: column;
   
-  .header {
-    height: 80rpx;
-    display: flex;
-    align-items: center;
+  .practice-header {
+    background-color: #fff;
+    padding: 20rpx 30rpx 30rpx;
+    box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
     
-    .back-button {
-      width: 60rpx;
-      height: 60rpx;
+    .header-top {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 40rpx;
-      color: #333;
+      justify-content: space-between;
+      margin-bottom: 20rpx;
+      
+      .back-button {
+        width: 60rpx;
+        height: 60rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        .iconfont {
+          font-size: 36rpx;
+          color: #333;
+        }
+      }
+      
+      .header-title {
+        font-size: 34rpx;
+        font-weight: bold;
+        color: #333;
+      }
+      
+      .score-display {
+        background-color: #3C8999;
+        color: #fff;
+        border-radius: 30rpx;
+        padding: 6rpx 20rpx;
+        
+        .score-text {
+          font-size: 30rpx;
+          font-weight: bold;
+        }
+      }
+    }
+    
+    .progress-bar {
+      .progress-text {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 10rpx;
+        
+        text {
+          font-size: 24rpx;
+          color: #999;
+        }
+      }
+      
+      .progress-track {
+        height: 10rpx;
+        background-color: #f0f0f0;
+        border-radius: 5rpx;
+        overflow: hidden;
+        
+        .progress-fill {
+          height: 100%;
+          background-color: #3C8999;
+          border-radius: 5rpx;
+          transition: width 0.3s;
+        }
+      }
     }
   }
   
-  .image-container {
-    margin: 30rpx 0;
-    background: #fff;
-    border-radius: 16rpx;
-    overflow: hidden;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  .question-area {
     padding: 30rpx;
     
-    .sign-image {
-      width: 100%;
-      height: 400rpx;
-      object-fit: contain;
+    .question-card {
+      background-color: #fff;
+      border-radius: 20rpx;
+      padding: 30rpx;
+      box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+      
+      .question-image {
+        width: 100%;
+        height: 400rpx;
+        margin-bottom: 30rpx;
+        background-color: #f5f5f5;
+        border-radius: 10rpx;
+      }
+      
+      .question-prompt {
+        text-align: center;
+        margin-bottom: 20rpx;
+        
+        .prompt-text {
+          font-size: 32rpx;
+          color: #333;
+          font-weight: bold;
+        }
+      }
     }
   }
   
-  .options-container {
-    margin: 30rpx 0;
-    display: flex;
-    flex-direction: column;
-    gap: 20rpx;
+  .options-area {
+    padding: 0 30rpx;
+    margin-bottom: 30rpx;
     
-    .option-item {
+    .option-button {
       background-color: #fff;
-      border-radius: 16rpx;
+      border-radius: 15rpx;
       padding: 30rpx;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-      min-height: 100rpx;
+      margin-bottom: 20rpx;
       box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       transition: all 0.3s;
       
       &:active {
         transform: scale(0.98);
+        background-color: #f9f9f9;
       }
       
       .option-text {
-        font-size: 36rpx;
+        font-size: 32rpx;
         color: #333;
+        font-weight: 500;
       }
       
       .option-result {
-        position: absolute;
-        right: 30rpx;
-        font-size: 40rpx;
+        .iconfont {
+          font-size: 40rpx;
+          
+          &.correct-icon {
+            color: #52c41a;
+          }
+          
+          &.wrong-icon {
+            color: #f5222d;
+          }
+        }
       }
       
       &.option-correct {
-        background-color: rgba(142, 255, 123, 0.3);
-        border: 2rpx solid #4caf50;
-        
-        .option-result {
-          color: #4caf50;
-        }
+        background-color: rgba(82, 196, 26, 0.1);
+        border: 2rpx solid #52c41a;
       }
       
-      &.option-wrong {
-        background-color: rgba(255, 123, 123, 0.3);
-        border: 2rpx solid #f44336;
-        
-        .option-result {
-          color: #f44336;
-        }
+      &.option-incorrect {
+        background-color: rgba(245, 34, 45, 0.1);
+        border: 2rpx solid #f5222d;
       }
       
       &.option-disabled {
         opacity: 0.6;
+        
+        &:active {
+          transform: none;
+        }
       }
     }
   }
   
-  .next-button {
-    margin: 30rpx 0;
-    background: linear-gradient(to right, #3C8999, #55a5b5);
-    border-radius: 50rpx;
-    height: 90rpx;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 6rpx 16rpx rgba(60, 137, 153, 0.3);
+  .next-area {
+    padding: 0 30rpx;
+    margin-bottom: 50rpx;
     
-    text {
+    .feedback-message {
+      text-align: center;
+      margin-bottom: 30rpx;
+      
+      text {
+        font-size: 32rpx;
+        font-weight: bold;
+        
+        &.correct-message {
+          color: #52c41a;
+        }
+        
+        &.wrong-message {
+          color: #f5222d;
+        }
+      }
+    }
+    
+    .next-button {
+      background: linear-gradient(to right, #3C8999, #55a5b5);
       color: #fff;
       font-size: 32rpx;
       font-weight: bold;
-    }
-    
-    &:active {
-      transform: scale(0.98);
+      height: 90rpx;
+      line-height: 90rpx;
+      border-radius: 45rpx;
+      box-shadow: 0 6rpx 16rpx rgba(60, 137, 153, 0.3);
+      
+      &::after {
+        border: none;
+      }
     }
   }
   
-  .progress-bar {
-    margin-top: 30rpx;
+  .result-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
     
-    text {
-      font-size: 28rpx;
-      color: #666;
+    .result-card {
+      width: 600rpx;
+      background-color: #fff;
+      border-radius: 20rpx;
+      overflow: hidden;
+      
+      .result-header {
+        background: linear-gradient(to right, #3C8999, #55a5b5);
+        padding: 30rpx;
+        text-align: center;
+        
+        .result-title {
+          font-size: 36rpx;
+          color: #fff;
+          font-weight: bold;
+        }
+      }
+      
+      .result-content {
+        padding: 50rpx 30rpx;
+        
+        .result-score {
+          text-align: center;
+          margin-bottom: 30rpx;
+          
+          .score-number {
+            font-size: 80rpx;
+            color: #3C8999;
+            font-weight: bold;
+          }
+          
+          .score-total {
+            font-size: 40rpx;
+            color: #999;
+          }
+        }
+        
+        .result-percentage {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-bottom: 40rpx;
+          
+          .percentage-text {
+            font-size: 60rpx;
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 10rpx;
+          }
+          
+          .percentage-label {
+            font-size: 28rpx;
+            color: #999;
+          }
+        }
+        
+        .result-message {
+          text-align: center;
+          padding: 0 30rpx;
+          
+          text {
+            font-size: 32rpx;
+            color: #333;
+            line-height: 1.6;
+          }
+        }
+      }
+      
+      .result-actions {
+        display: flex;
+        padding: 30rpx;
+        border-top: 1px solid #f0f0f0;
+        
+        button {
+          flex: 1;
+          height: 80rpx;
+          line-height: 80rpx;
+          font-size: 30rpx;
+          
+          &::after {
+            border: none;
+          }
+        }
+        
+        .restart-button {
+          background-color: #3C8999;
+          color: #fff;
+          margin-right: 20rpx;
+          border-radius: 10rpx;
+        }
+        
+        .back-button {
+          background-color: #f5f5f5;
+          color: #333;
+          border-radius: 10rpx;
+        }
+      }
     }
   }
 }
