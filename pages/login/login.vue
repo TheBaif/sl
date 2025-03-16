@@ -1,28 +1,48 @@
 <template>
   <view class="login-container">
+    <view class="login-header">
+      <image src="/static/logo.png" mode="aspectFit" class="logo"></image>
+      <text class="app-name">手语学习</text>
+      <text class="app-slogan">连接无声世界的桥梁</text>
+    </view>
+    
     <form @submit="handleLogin">
-      <view class="login-box">
-        <view class="title">用户登录</view>
+      <view class="login-form">
         <view class="input-group">
+          <view class="input-icon">
+            <text class="iconfont">&#xe6a4;</text>
+          </view>
           <input 
             name="username"
             type="text" 
             placeholder="请输入用户名"
+            class="input-field"
           />
         </view>
+        
         <view class="input-group">
+          <view class="input-icon">
+            <text class="iconfont">&#xe6a3;</text>
+          </view>
           <input 
             name="password"
             type="password" 
             placeholder="请输入密码"
+            class="input-field"
           />
         </view>
+        
         <button class="login-btn" form-type="submit">登录</button>
+        
         <view class="register-link">
           还没有账号？<text @tap="goToRegister">立即注册</text>
         </view>
       </view>
     </form>
+    
+    <view class="login-footer">
+      <text class="footer-text">© 2025 手语学习助手</text>
+    </view>
   </view>
 </template>
 
@@ -103,65 +123,115 @@ export default {
 }
 </script>
 
-
-
 <style lang="scss">
 .login-container {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background: linear-gradient(135deg, #3C8999 0%, #55a5b5 100%);
+  display: flex;
+  flex-direction: column;
   padding: 40rpx;
   
-  .login-box {
-    background-color: #fff;
-    border-radius: 20rpx;
-    padding: 40rpx;
-    margin-top: 100rpx;
+  .login-header {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80rpx 0;
     
-    .title {
-      font-size: 40rpx;
-      font-weight: bold;
-      text-align: center;
-      margin-bottom: 60rpx;
+    .logo {
+      width: 180rpx;
+      height: 180rpx;
+      margin-bottom: 30rpx;
     }
     
+    .app-name {
+      font-size: 48rpx;
+      font-weight: bold;
+      color: #ffffff;
+      margin-bottom: 20rpx;
+    }
+    
+    .app-slogan {
+      font-size: 28rpx;
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+  
+  .login-form {
+    background-color: #ffffff;
+    border-radius: 24rpx;
+    padding: 50rpx 40rpx;
+    box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.1);
+    margin-bottom: 60rpx;
+    
     .input-group {
+      display: flex;
+      align-items: center;
+      background-color: #f5f5f5;
+      border-radius: 50rpx;
       margin-bottom: 30rpx;
+      padding: 0 30rpx;
+      height: 90rpx;
       
-      input {
-        width: 100%;
-        height: 80rpx;
-        background-color: #f5f5f5;
-        border-radius: 40rpx;
-        padding: 0 30rpx;
+      .input-icon {
+        margin-right: 20rpx;
+        
+        .iconfont {
+          font-size: 36rpx;
+          color: #3C8999;
+        }
+      }
+      
+      .input-field {
+        flex: 1;
+        height: 100%;
         font-size: 28rpx;
       }
     }
     
     .login-btn {
       width: 100%;
-      height: 80rpx;
-      line-height: 80rpx;
-      background-color: #007AFF;
+      height: 90rpx;
+      line-height: 90rpx;
+      background: linear-gradient(to right, #3C8999, #55a5b5);
       color: #fff;
-      border-radius: 40rpx;
+      border-radius: 45rpx;
       font-size: 32rpx;
-      margin-top: 60rpx;
+      margin-top: 50rpx;
+      font-weight: bold;
+      box-shadow: 0 8rpx 16rpx rgba(60, 137, 153, 0.3);
       
       &::after {
         border: none;
+      }
+      
+      &:active {
+        transform: scale(0.98);
       }
     }
     
     .register-link {
       text-align: center;
-      margin-top: 30rpx;
+      margin-top: 40rpx;
       font-size: 28rpx;
       color: #666;
       
       text {
-        color: #007AFF;
+        color: #3C8999;
         margin-left: 10rpx;
+        font-weight: bold;
       }
+    }
+  }
+  
+  .login-footer {
+    padding: 30rpx 0;
+    text-align: center;
+    
+    .footer-text {
+      font-size: 24rpx;
+      color: rgba(255, 255, 255, 0.7);
     }
   }
 }
