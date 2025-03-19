@@ -7,7 +7,7 @@
         <text class="username">{{ userInfo.nickname || userInfo.username || '欢迎使用' }}</text>
       </view>
       <view class="search-icon" @tap="navigateToSearch">
-        <text class="iconfont">&#xe61c;</text>
+        <text class="iconfont">搜索</text>
       </view>
     </view>
 
@@ -53,9 +53,7 @@
       
       <view class="feature-cards">
         <view class="feature-card" @tap="navigateToVocabulary">
-          <view class="card-icon vocabulary-icon">
-            <text class="iconfont">&#xe65b;</text>
-          </view>
+          
           <view class="card-content">
             <text class="card-title">手语词库</text>
             <text class="card-desc">探索丰富的手语词汇</text>
@@ -64,9 +62,7 @@
         </view>
         
         <view class="feature-card" @tap="navigateToPractice">
-          <view class="card-icon practice-icon">
-            <text class="iconfont">&#xe665;</text>
-          </view>
+         
           <view class="card-content">
             <text class="card-title">手语练习</text>
             <text class="card-desc">提升手语表达能力</text>
@@ -103,22 +99,18 @@
     <!-- Bottom Navigation -->
     <view class="bottom-nav">
       <view class="nav-item active">
-        <text class="iconfont">&#xe65e;</text>
         <text class="nav-text">首页</text>
       </view>
       
       <view class="nav-item" @tap="navigateToVocabulary">
-        <text class="iconfont">&#xe65b;</text>
         <text class="nav-text">词库</text>
       </view>
       
       <view class="nav-item" @tap="navigateToPractice">
-        <text class="iconfont">&#xe665;</text>
         <text class="nav-text">练习</text>
       </view>
       
       <view class="nav-item" @tap="navigateToUserProfile">
-        <text class="iconfont">&#xe6a4;</text>
         <text class="nav-text">我的</text>
       </view>
     </view>
@@ -599,7 +591,7 @@ export default {
       }
       
       .nav-text {
-        font-size: 22rpx;
+        font-size: 33rpx;
         color: #999;
       }
       

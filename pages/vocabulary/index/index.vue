@@ -39,9 +39,7 @@
             :key="index"
             @tap="navigateToSubcategory(category)"
           >
-            <view class="category-icon" :class="`bg-color-${index % 5}`">
-              <text class="iconfont">{{ getCategoryIcon(index) }}</text>
-            </view>
+            
             <view class="category-info">
               <text class="category-name">{{ category.name }}</text>
               <text class="category-desc">{{ getCategoryDesc(category) }}</text>
