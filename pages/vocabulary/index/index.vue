@@ -3,12 +3,11 @@
     <!-- Header with Title and Search -->
     <view class="vocabulary-header">
       <view class="header-top">
-        <view class="back-button" @tap="navigateBack">
-          <text class="iconfont">&#xe679;</text>
+        <view class="back-button" @tap="navigateBack"><
         </view>
         <text class="header-title">手语词库</text>
         <view class="search-button" @tap="navigateToSearch">
-          <text class="iconfont">&#xe61c;</text>
+          搜索
         </view>
       </view>
       
@@ -55,8 +54,7 @@
               class="page-btn" 
               :class="{ disabled: parentCurrentPage <= 1 }" 
               @tap="goToParentPrevPage"
-            >
-              <text class="iconfont">&#xe679;</text>
+            >上一页
             </view>
             <view class="page-indicator">
               <text>{{ parentCurrentPage }}/{{ parentTotalPages }}</text>
@@ -65,8 +63,7 @@
               class="page-btn" 
               :class="{ disabled: parentCurrentPage >= parentTotalPages }" 
               @tap="goToParentNextPage"
-            >
-              <text class="iconfont" style="transform: rotate(180deg)">&#xe679;</text>
+            >下一页
             </view>
           </view>
         </view>
@@ -401,10 +398,11 @@ export default {
         width: 60rpx;
         height: 60rpx;
         background-color: rgba(255, 255, 255, 0.2);
-        border-radius: 30rpx;
+        border-radius: 25rpx;
         display: flex;
         align-items: center;
         justify-content: center;
+		font-size: 30rpx;
         
         .iconfont {
           font-size: 36rpx;
@@ -618,14 +616,17 @@ export default {
           align-items: center;
           
           .page-btn {
-            width: 60rpx;
-            height: 60rpx;
-            background-color: #3C8999;
-            border-radius: 30rpx;
+            height: 56rpx;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 10rpx;
+            background-color: #3C8999;
+            color: #fff;
+            border-radius: 28rpx;
+            font-size: 24rpx;
+            min-width: 80rpx;
+            padding: 0 15rpx;
+            box-shadow: 0 2rpx 6rpx rgba(60, 137, 153, 0.2);
             
             .iconfont {
               font-size: 32rpx;

@@ -3,12 +3,10 @@
     <!-- Header with Title -->
     <view class="subcategory-header">
       <view class="header-top">
-        <view class="back-button" @tap="navigateBack">
-          <text class="iconfont">&#xe679;</text>
+        <view class="back-button" @tap="navigateBack"><
         </view>
         <text class="header-title">{{ parentName || '未命名词库' }}</text>
-        <view class="search-button" @tap="navigateToSearch">
-          <text class="iconfont">&#xe61c;</text>
+        <view class="search-button" @tap="navigateToSearch">搜索
         </view>
       </view>
     </view>
@@ -52,9 +50,6 @@
               :key="index"
               @tap="navigateToWordlist(item)"
             >
-              <view class="card-icon" :class="`color-${index % 6}`">
-                <text class="iconfont">{{ getCategoryIcon(index) }}</text>
-              </view>
               <view class="card-info">
                 <text class="card-title">{{ item.name || '未命名子分类' }}</text>
                 <text class="card-desc">{{ getSubcategoryDesc(item) }}</text>
@@ -69,8 +64,7 @@
               class="page-btn prev-btn" 
               :class="{ disabled: currentPage <= 1 }"
               @tap="goToPrevPage"
-            >
-              <text class="iconfont">&#xe679;</text>
+            >上一页
             </view>
             
             <view class="page-numbers">
@@ -89,36 +83,12 @@
               class="page-btn next-btn" 
               :class="{ disabled: currentPage >= totalPages }"
               @tap="goToNextPage"
-            >
-              <text class="iconfont" style="transform: rotate(180deg)">&#xe679;</text>
+            >下一页
             </view>
           </view>
         </view>
         
-        <!-- Popular Signs Section -->
-        <view class="popular-section">
-          <view class="section-header">
-            <view class="header-info">
-              <text class="section-title">热门手语</text>
-            </view>
-          </view>
-          
-          <scroll-view scroll-x class="popular-scroll">
-            <view 
-              class="popular-item" 
-              v-for="(item, index) in popularSigns" 
-              :key="index"
-              @tap="viewSignDetail(item)"
-            >
-              <image 
-                :src="item.imageSrc || '/static/placeholder-sign.png'" 
-                mode="aspectFill"
-                class="popular-image"
-              ></image>
-              <text class="popular-name">{{ item.name }}</text>
-            </view>
-          </scroll-view>
-        </view>
+       
       </block>
     </scroll-view>
   </view>
@@ -668,13 +638,17 @@ export default {
       margin: 40rpx 0;
       
       .page-btn {
-        width: 60rpx;
-        height: 60rpx;
-        background-color: #3C8999;
-        border-radius: 30rpx;
+        height: 56rpx;
         display: flex;
         align-items: center;
         justify-content: center;
+        background-color: #3C8999;
+        color: #fff;
+        border-radius: 28rpx;
+        font-size: 24rpx;
+        min-width: 80rpx;
+        padding: 0 15rpx;
+        box-shadow: 0 2rpx 6rpx rgba(60, 137, 153, 0.2);
         
         .iconfont {
           font-size: 32rpx;
