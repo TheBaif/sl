@@ -98,28 +98,7 @@
         </view>
       </view>
       
-      <!-- Related Signs -->
-      <view class="related-section" v-if="relatedSigns.length">
-        <view class="section-header">
-          <text class="section-title">相关手语</text>
-        </view>
-        
-        <scroll-view scroll-x class="related-scrollview">
-          <view 
-            class="related-item" 
-            v-for="(item, index) in relatedSigns" 
-            :key="index"
-            @tap="viewRelatedSign(item)"
-          >
-            <image 
-              :src="item.imageSrc || '/static/placeholder-sign.png'" 
-              class="related-image"
-              mode="aspectFill"
-            ></image>
-            <text class="related-name">{{ item.name }}</text>
-          </view>
-        </scroll-view>
-      </view>
+      
     </scroll-view>
     
     <!-- Bottom Actions Bar -->
