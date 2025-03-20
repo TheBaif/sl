@@ -285,31 +285,56 @@ export default {
     
     // 选择选项
     selectOption(option) {
-          // 已经选择过则不再处理
-          if (this.selectedOption) return;
-          
-          this.selectedOption = option;
-          
-          // 判断是否正确
-          if (option.id === this.currentQuestion.id) {
-            this.score++;
-            this.recordLearning(option.id, true); // 传递signId和isCorrect
-          } else {
-            this.recordLearning(option.id, false); // 传递signId和isCorrect
-          }
-        },
+      // Already selected an option, don't allow another selection
+      if (this.selectedOption) return;
+      
+      this.selectedOption = option;
+      
+      // Compare the IDs as strings to ensure consistent comparison
+      const selectedId = String(option.id);
+      const correctId = String(this.currentQuestion.id);
+      
+      if (selectedId === correctId) {
+        // Correct answer
+        this.score++;
+        // Play correct sound
+        const correctAudio = uni.createInnerAudioContext();
+        correctAudio.src = '/static/audio/correct.mp3';
+        correctAudio.play();
+        
+        // Report correct answer to the learning record API
+        this.updateLearningRecord(this.currentQuestion.id, true);
+      } else {
+        // Incorrect answer
+        // Play wrong sound
+        const wrongAudio = uni.createInnerAudioContext();
+        wrongAudio.src = '/static/audio/wrong.mp3';
+        wrongAudio.play();
+        
+        // Report incorrect answer to the learning record API
+        this.updateLearningRecord(this.currentQuestion.id, false);
+      }
+    },
     
     // 记录学习进度
-    async recordLearning(signId, isCorrect) {
-          try {
-            await http.post('/learning/record', {
-              signId: signId,
-              isCorrect: isCorrect
-            })
-          } catch (error) {
-            console.error('记录学习行为失败:', error)
+    async updateLearningRecord(signId, isCorrect) {
+      try {
+        const token = uni.getStorageSync('token');
+        if (!token) return;
+        
+        await http.post('/learning/record', {
+          signId: signId,
+          isCorrect: isCorrect
+        }, {
+          header: {
+            'Authorization': token
           }
-        },
+        });
+      } catch (error) {
+        console.error('Failed to update learning record:', error);
+        // Continue with the practice experience even if the record update fails
+      }
+    },
     
     // 获取选项类名
     getOptionClass(option) {
