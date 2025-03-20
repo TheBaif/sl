@@ -294,7 +294,10 @@ export default {
       const selectedId = String(option.id);
       const correctId = String(this.currentQuestion.id);
       
-      if (selectedId === correctId) {
+      // Set the isCorrect flag based on the comparison result
+      this.isCorrect = selectedId === correctId;
+      
+      if (this.isCorrect) {
         // Correct answer
         this.score++;
         // Play correct sound
@@ -352,6 +355,8 @@ export default {
     // 下一题
     nextQuestion() {
       this.currentQuestionIndex++;
+	  this.selectedOption = null;
+	  this.isCorrect = false;
       
       // 检查是否完成所有题目
       if (this.currentQuestionIndex >= this.totalQuestions) {
