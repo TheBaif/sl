@@ -41,20 +41,11 @@
       
       <view class="info-section">
         <view class="info-item">
-            <text class="label">学习进度</text>
-            <view class="value-container">
-              <text class="value">查看详情</text>
-              <uni-icons type="right" size="18" color="#999" @click="navigateToProgressDashboard"></uni-icons>
-            </view>
-        </view>
-        
-        <!-- 添加手语识别入口 -->
-        <view class="info-item">
-            <text class="label">手语识别</text>
-            <view class="value-container">
-              <text class="value">体验实时识别</text>
-              <uni-icons type="right" size="18" color="#999" @click="navigateToRecognition"></uni-icons>
-            </view>
+          <text class="label">学习进度</text>
+          <view class="value-container">
+            <text class="value">查看详情</text>
+            <uni-icons type="right" size="18" color="#999" @click="navigateToProgressDashboard"></uni-icons>
+          </view>
         </view>
       </view>
       
@@ -123,76 +114,61 @@ export default {
   },
   
   onShow() {
-    this.getUserInfo()
+    this.getUserInfo();
   },
   
   methods: {
+    // Get user info from API
     async getUserInfo() {
       try {
-        this.loading = true
+        this.loading = true;
         
-        // 使用http工具或者直接使用uni.request
-        let res
+        // Try http utility first
+        let res;
         try {
-          res = await http.get('/user/userInfo')
+          res = await http.get('/user/userInfo');
         } catch (err) {
-          // 如果http工具出错，尝试直接使用uni.request
-          res = await this.requestGet('/user/userInfo')
+          // Fall back to direct request if http utility fails
+          res = await this.requestGet('/user/userInfo');
         }
         
-        // 添加日志查看实际返回数据结构
-        console.log('获取到的用户信息:', res)
+        console.log('获取到的用户信息:', res);
         
-        // 根据返回结构正确获取数据
         if (res.data && res.data.code === 0) {
-          // 如果是uni.request封装的结果，通常是res.data包含API返回值
-          this.userInfo = res.data.data
-          this.editForm.nickname = this.userInfo.nickname
-          this.editForm.email = this.userInfo.email
+          this.userInfo = res.data.data;
+          this.editForm.nickname = this.userInfo.nickname;
+          this.editForm.email = this.userInfo.email;
         } else if (res.code === 0) {
-          // 如果是直接返回API结果
-          this.userInfo = res.data
-          this.editForm.nickname = this.userInfo.nickname
-          this.editForm.email = this.userInfo.email
+          // Direct API result format
+          this.userInfo = res.data;
+          this.editForm.nickname = this.userInfo.nickname;
+          this.editForm.email = this.userInfo.email;
         } else {
-          const message = (res.data && res.data.message) || res.message || '获取用户信息失败'
+          const message = (res.data && res.data.message) || res.message || '获取用户信息失败';
           uni.showToast({
             title: message,
             icon: 'none'
-          })
+          });
         }
       } catch (error) {
-        console.error('获取用户信息失败:', error)
+        console.error('获取用户信息失败:', error);
         uni.showToast({
           title: '获取用户信息失败',
           icon: 'none'
-        })
+        });
         
-        // 可能是未登录或token过期
+        // Might be unauthenticated
         setTimeout(() => {
           uni.navigateTo({
             url: '/pages/login/login'
-          })
-        }, 1500)
+          });
+        }, 1500);
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
     
-    navigateToProgressDashboard() {
-      uni.navigateTo({
-        url: '/pages/progress-dashboard/progress-dashboard'
-      })
-    },
-    
-    // 添加导航到手语识别页面的方法
-    navigateToRecognition() {
-      uni.navigateTo({
-        url: '/pages/recognition/recognition'
-      })
-    },
-    
-    // 通用GET请求方法
+    // Generic GET request method
     requestGet(url) {
       return new Promise((resolve, reject) => {
         uni.request({
@@ -204,126 +180,129 @@ export default {
           },
           success: (res) => {
             if (res.statusCode === 200) {
-              resolve(res)
+              resolve(res);
             } else {
-              reject(new Error(`请求失败，状态码: ${res.statusCode}`))
+              reject(new Error(`请求失败，状态码: ${res.statusCode}`));
             }
           },
           fail: (err) => {
-            reject(err)
+            reject(err);
           }
-        })
-      })
+        });
+      });
     },
     
-    // 弹窗相关方法
+    // Popup related methods
     showEditAvatar() {
-      this.$refs.avatarPopup.open()
+      this.$refs.avatarPopup.open();
     },
     
     showEditNickname() {
-      this.$refs.nicknamePopup.open()
+      this.$refs.nicknamePopup.open();
     },
     
     showEditEmail() {
-      this.$refs.emailPopup.open()
+      this.$refs.emailPopup.open();
     },
     
     closePopup() {
-      this.$refs.avatarPopup.close()
-      this.$refs.nicknamePopup.close()
-      this.$refs.emailPopup.close()
+      this.$refs.avatarPopup.close();
+      this.$refs.nicknamePopup.close();
+      this.$refs.emailPopup.close();
     },
     
-    // 选择并上传图片
+    // Choose and upload image
     chooseImage(sourceType) {
       uni.chooseImage({
-        count: 1,
-        sourceType: [sourceType],
+        count: 1, // Only choose one image
+        sourceType: [sourceType], // 'album' or 'camera'
         success: (res) => {
-          const tempFilePaths = res.tempFilePaths
-          // 选择图片后直接上传到临时服务器
-          this.uploadAndUpdateAvatar(tempFilePaths[0])
-          this.$refs.avatarPopup.close()
+          const tempFilePaths = res.tempFilePaths;
+          // Process selected image
+          this.uploadAndUpdateAvatar(tempFilePaths[0]);
+          // Close the popup
+          this.$refs.avatarPopup.close();
+        },
+        fail: (err) => {
+          console.error('选择图片失败:', err);
+          uni.showToast({
+            title: '选择图片失败',
+            icon: 'none'
+          });
         }
-      })
+      });
     },
     
-    // 上传图片并更新头像
+    // Upload image and update avatar
     async uploadAndUpdateAvatar(filePath) {
       uni.showLoading({
         title: '上传中...'
-      })
+      });
       
       try {
-        // 步骤1: 上传图片到服务器获取URL
-        const imageUrl = await this.uploadImageToServer(filePath)
+        // Step 1: Upload image to server with avatar directory
+        const imageUrl = await this.uploadImageToServer(filePath);
         
-        // 步骤2: 使用获取到的URL更新用户头像
-        await this.updateAvatarUrl(imageUrl)
+        // Step 2: Update user avatar with the returned URL
+        await this.updateAvatarUrl(imageUrl);
         
+        // Show success message
         uni.showToast({
           title: '头像更新成功',
           icon: 'success'
-        })
+        });
         
-        // 更新头像后刷新用户信息
-        this.getUserInfo()
+        // Refresh user info to display the new avatar
+        this.getUserInfo();
       } catch (error) {
-        console.error('上传头像失败:', error)
+        console.error('上传头像失败:', error);
         uni.showToast({
           title: error.message || '上传头像失败',
           icon: 'none'
-        })
+        });
       } finally {
-        uni.hideLoading()
+        uni.hideLoading();
       }
     },
     
-    // 上传图片到服务器
+    // Upload image to server with avatar directory
     uploadImageToServer(filePath) {
       return new Promise((resolve, reject) => {
-        // 这里需要替换为你的图片上传服务
-        // 示例使用模拟上传，实际项目请更换为真实的上传逻辑
-        
-        // 模拟方案：直接返回一个URL（开发或测试时使用）
-        setTimeout(() => {
-          const mockUrl = "https://example.com/images/avatar.jpg"
-          resolve(mockUrl)
-        }, 1000)
-        
-        /* 
-        // 真实上传示例 - 请根据你的实际情况修改
         uni.uploadFile({
-          url: 'https://your-upload-service.com/upload',
+          url: 'http://localhost:8080/upload?directory=avatar',
           filePath: filePath,
           name: 'file',
           header: {
             'Authorization': uni.getStorageSync('token')
           },
           success: (uploadRes) => {
-            console.log('文件上传响应:', uploadRes)
+            console.log('文件上传响应:', uploadRes);
             if (uploadRes.statusCode === 200) {
               try {
-                const data = JSON.parse(uploadRes.data)
-                // 假设服务器返回 {url: "https://..."}
-                resolve(data.url)
+                const data = JSON.parse(uploadRes.data);
+                if (data.code === 0) {
+                  // The returned url will be like https://sign-dic.oss-cn-beijing.aliyuncs.com/avatar/filename
+                  resolve(data.data);
+                } else {
+                  reject(new Error(data.message || '上传失败'));
+                }
               } catch (e) {
-                reject(new Error('解析响应失败'))
+                console.error('解析上传响应失败:', e);
+                reject(new Error('解析响应失败'));
               }
             } else {
-              reject(new Error('上传失败'))
+              reject(new Error(`上传失败: ${uploadRes.statusCode}`));
             }
           },
           fail: (err) => {
-            reject(new Error('上传请求失败'))
+            console.error('上传请求失败:', err);
+            reject(new Error('上传请求失败'));
           }
-        })
-        */
-      })
+        });
+      });
     },
     
-    // 更新头像URL - 使用PATCH请求
+    // Update avatar URL in user profile
     updateAvatarUrl(avatarUrl) {
       return new Promise((resolve, reject) => {
         uni.request({
@@ -334,64 +313,63 @@ export default {
             'Authorization': uni.getStorageSync('token')
           },
           success: (res) => {
-            console.log('更新头像响应:', res)
+            console.log('更新头像响应:', res);
             if (res.statusCode === 200) {
-              let data = res.data
+              let data = res.data;
               if (data.code === 0) {
-                resolve(true)
+                resolve(true);
               } else {
-                reject(new Error(data.message || '更新头像失败'))
+                reject(new Error(data.message || '更新头像失败'));
               }
             } else {
-              reject(new Error(`请求失败，状态码: ${res.statusCode}`))
+              reject(new Error(`请求失败，状态码: ${res.statusCode}`));
             }
           },
           fail: (err) => {
-            console.error('更新头像请求失败:', err)
-            reject(new Error('请求失败'))
+            console.error('更新头像请求失败:', err);
+            reject(new Error('请求失败'));
           }
-        })
-      })
+        });
+      });
     },
     
-    // 更新昵称
+    // Update nickname
     async handleUpdateNickname(value) {
       const updateData = {
         id: this.userInfo.id,
         nickname: value,
         email: this.userInfo.email
-      }
-      await this.updateUserInfo(updateData, '昵称')
+      };
+      await this.updateUserInfo(updateData, '昵称');
     },
     
-    // 更新邮箱
+    // Update email
     async handleUpdateEmail(value) {
-      // 简单的邮箱格式验证
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      // Simple email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (value && !emailRegex.test(value)) {
         uni.showToast({
           title: '邮箱格式不正确',
           icon: 'none'
-        })
-        return
+        });
+        return;
       }
       
       const updateData = {
         id: this.userInfo.id,
         nickname: this.userInfo.nickname,
         email: value
-      }
-      await this.updateUserInfo(updateData, '邮箱')
+      };
+      await this.updateUserInfo(updateData, '邮箱');
     },
     
-    // 统一处理更新用户信息的方法 - 使用PUT方法和/update接口
+    // Update user info
     async updateUserInfo(data, fieldName) {
       try {
         uni.showLoading({
           title: '更新中...'
-        })
+        });
         
-        // 使用uni.request直接发送PUT请求
         const result = await new Promise((resolve, reject) => {
           uni.request({
             url: 'http://localhost:8080/user/update',
@@ -402,66 +380,72 @@ export default {
               'Authorization': uni.getStorageSync('token')
             },
             success: (res) => {
-              console.log('更新用户信息响应:', res)
+              console.log('更新用户信息响应:', res);
               if (res.statusCode === 200) {
-                resolve(res)
+                resolve(res);
               } else {
-                reject(new Error(`请求失败，状态码: ${res.statusCode}`))
+                reject(new Error(`请求失败，状态码: ${res.statusCode}`));
               }
             },
             fail: (err) => {
-              console.error('更新用户信息请求失败:', err)
-              reject(new Error('请求失败'))
+              console.error('更新用户信息请求失败:', err);
+              reject(new Error('请求失败'));
             }
-          })
-        })
+          });
+        });
         
-        // 处理响应结果
-        const res = result
+        const res = result;
         
         if ((res.data && res.data.code === 0) || res.code === 0) {
           uni.showToast({
             title: `${fieldName}更新成功`,
             icon: 'success'
-          })
-          this.getUserInfo() // 刷新用户信息
+          });
+          this.getUserInfo(); // Refresh user info
         } else {
-          const message = (res.data && res.data.message) || res.message || '更新失败'
-          throw new Error(message)
+          const message = (res.data && res.data.message) || res.message || '更新失败';
+          throw new Error(message);
         }
       } catch (error) {
-        console.error('更新用户信息失败:', error)
+        console.error('更新用户信息失败:', error);
         uni.showToast({
           title: error.message || '更新失败',
           icon: 'none'
-        })
+        });
       } finally {
-        uni.hideLoading()
+        uni.hideLoading();
       }
     },
     
-    // 退出登录
+    // Navigate to progress dashboard
+    navigateToProgressDashboard() {
+      uni.navigateTo({
+        url: '/pages/progress-dashboard/progress-dashboard'
+      });
+    },
+    
+    // Logout
     handleLogout() {
       uni.showModal({
         title: '提示',
         content: '确定要退出登录吗？',
         success: (res) => {
           if (res.confirm) {
-            uni.removeStorageSync('token')
+            uni.removeStorageSync('token');
             
             uni.showToast({
               title: '已退出登录',
               icon: 'success'
-            })
+            });
             
             setTimeout(() => {
               uni.reLaunch({
                 url: '/pages/login/login'
-              })
-            }, 1500)
+              });
+            }, 1500);
           }
         }
-      })
+      });
     }
   }
 }
