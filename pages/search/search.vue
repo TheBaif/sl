@@ -154,7 +154,17 @@ export default {
       }, 500)
     },
     
-   goToDetail(item) {
+   goToDetail(item, index) {
+     // 添加参数检查
+     if (!item || !item.id) {
+       uni.showToast({
+         title: '数据不完整，无法查看详情',
+         icon: 'none'
+       });
+       return;
+     }
+     
+     // 使用明确的ID参数
      uni.navigateTo({
        url: `/pages/detail/detail?id=${item.id}`
      });

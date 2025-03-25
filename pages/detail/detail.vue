@@ -1,56 +1,85 @@
 <template>
   <view class="detail-container">
-    <!-- 加载中状态 -->
-    <view v-if="loading" class="loading-state">
-      <view class="loader"></view>
-      <text>加载中，请稍候...</text>
-    </view>
-    
-    <!-- 错误状态 -->
-    <view v-else-if="error" class="error-state">
-      <text class="error-message">{{ errorMessage }}</text>
-      <button class="retry-button" @tap="fetchSignDetail">重试</button>
-    </view>
-    
-    <!-- 内容显示 -->
-    <view v-else class="detail-content">
-      <view class="header">
-        <text class="title">{{ searchResult.name }}</text>
-        <text class="pinyin">{{ searchResult.pinyin }}</text>
+    <scroll-view scroll-y class="detail-scroll">
+      <!-- 加载状态 -->
+      <view v-if="loading" class="loading-section">
+        <view class="loader"></view>
+        <text>加载中...</text>
       </view>
       
-      <view class="content">
-        <!-- 手势说明部分 -->
-        <view class="gesture-section">
-          <text class="section-title">手势说明：</text>
-          <view class="gesture-steps">
-            <text v-for="(step, index) in gestureSteps" 
-                 :key="index" 
-                 class="step">{{ step }}</text>
-          </view>
+      <!-- 错误状态 -->
+      <view v-else-if="error" class="error-section">
+        <text>{{ errorMessage || '加载失败' }}</text>
+        <view class="retry-btn" @tap="fetchSignDetail">重试</view>
+      </view>
+      
+      <!-- 内容显示 -->
+      <view v-else class="detail-item">
+        <view class="header">
+          <text class="title">{{ searchResult.name || '未命名手语' }}</text>
+          <text class="pinyin">{{ searchResult.pinyin || '' }}</text>
         </view>
         
-        <!-- 媒体内容部分 -->
-        <view class="media-content">
-          <image v-if="searchResult.imageSrc" 
-                 :src="searchResult.imageSrc" 
-                 mode="aspectFit" 
-                 class="sign-image"
-                 @tap="previewImage(searchResult.imageSrc)"
-                 @error="handleImageError"></image>
+        <view class="content">
+          <!-- 手势说明部分 -->
+          <view class="gesture-section" v-if="gestureSteps && gestureSteps.length">
+            <text class="section-title">手势说明</text>
+            <view class="gesture-steps">
+              <text 
+                v-for="(step, index) in gestureSteps" 
+                :key="index" 
+                class="step"
+              >{{ step }}</text>
+            </view>
+          </view>
+          <view v-else class="empty-state">
+            <text>暂无手势说明</text>
+          </view>
           
-          <video v-if="searchResult.wordVideoSrc" 
-                 :src="searchResult.wordVideoSrc"
-                 class="sign-video"
-                 :controls="true"
-                 :show-play-btn="true"
-                 :enable-play-gesture="true"
-                 :show-fullscreen-btn="true"
-                 :object-fit="'cover'"
-                 :initial-time="0"></video>
+          <!-- 媒体内容部分 -->
+          <view class="media-content">
+            <!-- 图片展示 -->
+            <image 
+              v-if="searchResult.imageSrc" 
+              :src="searchResult.imageSrc" 
+              mode="aspectFit" 
+              class="sign-image"
+              @tap="previewImage(searchResult.imageSrc)"
+              @error="handleImageError"
+            ></image>
+            <view v-else class="empty-state">
+              <text>暂无图片</text>
+            </view>
+            
+            <!-- 视频展示 -->
+            <video 
+              v-if="searchResult.wordVideoSrc" 
+              :src="searchResult.wordVideoSrc"
+              class="sign-video"
+              :controls="true"
+              :show-play-btn="true"
+              :enable-play-gesture="true"
+              :show-fullscreen-btn="true"
+              :object-fit="'cover'"
+              :initial-time="0"
+              @error="handleVideoError"
+            ></video>
+            <view v-else class="empty-state">
+              <text>暂无视频</text>
+            </view>
+          </view>
         </view>
       </view>
-    </view>
+      
+      <!-- 导航按钮 -->
+      <view class="navigation-buttons">
+        <view class="nav-button" @tap="goBack">返回</view>
+        <view 
+          class="nav-button" 
+          @tap="recordLearning"
+        >标记已学习</view>
+      </view>
+    </scroll-view>
   </view>
 </template>
 <script>
@@ -75,14 +104,34 @@ export default {
     },
   
   onLoad(options) {
-   if (options.id) {
-         this.signId = options.id;
-         this.fetchSignDetail();
-       } else {
-         this.error = true;
-         this.errorMessage = '参数错误，未获取到手语ID';
-         this.loading = false;
-       }
+    console.log('详情页收到参数:', options);
+      
+      // 方式1: 通过ID参数获取
+      if (options.id && options.id !== 'null' && options.id !== 'undefined') {
+        this.signId = options.id;
+        this.fetchSignDetail();
+        return;
+      }
+      
+      // 方式2: 通过索引获取本地存储数据
+      if (options.index) {
+        const results = uni.getStorageSync('searchResults');
+        if (results && results[parseInt(options.index)]) {
+          this.searchResult = results[parseInt(options.index)];
+          this.loading = false;
+          return;
+        }
+      }
+      
+      // 两种方式都失败
+      this.error = true;
+      this.errorMessage = '参数错误，无法获取手语详情';
+      this.loading = false;
+      
+      uni.showToast({
+        title: '参数错误，无法获取详情',
+        icon: 'none'
+      });
   },
   
   methods: {
@@ -149,30 +198,30 @@ export default {
 	  }
 	},
 	async fetchSignDetail() {
-	      try {
-	        this.loading = true;
-	        
-	        const res = await uni.request({
-	          url: `http://localhost:8080/sign/detail/${this.signId}`,
-	          method: 'GET',
-	          header: {
-	            'Authorization': uni.getStorageSync('token')
-	          }
-	        });
-	        
-	        if (res.statusCode === 200 && res.data.code === 0) {
-	          this.searchResult = res.data.data;
-	        } else {
-	          throw new Error(res.data?.message || '获取详情失败');
+	    try {
+	      this.loading = true;
+	      
+	      const res = await uni.request({
+	        url: `http://localhost:8080/sign/detail/${this.signId}`,
+	        method: 'GET',
+	        header: {
+	          'Authorization': uni.getStorageSync('token')
 	        }
-	      } catch (error) {
-	        console.error('获取手语详情失败:', error);
-	        this.error = true;
-	        this.errorMessage = error.message || '获取详情失败';
-	      } finally {
-	        this.loading = false;
+	      });
+	      
+	      if (res[1].statusCode === 200 && res[1].data.code === 0) {
+	        this.searchResult = res[1].data.data;
+	      } else {
+	        throw new Error(res[1].data?.message || '获取详情失败');
 	      }
-	    },
+	    } catch (error) {
+	      console.error('获取手语详情失败:', error);
+	      this.error = true;
+	      this.errorMessage = error.message || '获取详情失败';
+	    } finally {
+	      this.loading = false;
+	    }
+	  },
     
     async getRelatedSigns() {
       // Mock related signs - in a real app, this would come from an API
@@ -249,149 +298,105 @@ export default {
 
 <style lang="scss">
 .detail-container {
-  display: flex;
-  flex-direction: column;
   min-height: 100vh;
   background-color: #f8f8f8;
+  padding-bottom: 40rpx;
   
-  .detail-header {
-    height: 100rpx;
-    background-color: #fff;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 30rpx;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-    
-    .header-left {
-      display: flex;
-      align-items: center;
-      
-      .back-button {
-        width: 60rpx;
-        height: 60rpx;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        
-        .iconfont {
-          font-size: 36rpx;
-          color: #333;
-        }
-      }
-      
-      .header-title {
-        font-size: 34rpx;
-        font-weight: bold;
-        color: #333;
-        margin-left: 20rpx;
-      }
-    }
-    
-    .header-right {
-      .like-button {
-        width: 60rpx;
-        height: 60rpx;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        
-        .iconfont {
-          font-size: 36rpx;
-          color: #999;
-          
-          &.liked {
-            color: #ff6b6b;
-          }
-        }
-      }
-    }
+  .detail-scroll {
+    height: 100vh;
   }
   
-  .detail-content {
-    flex: 1;
-    padding-bottom: 120rpx; // Space for bottom actions
+  .detail-item {
+    margin: 30rpx;
+    border-radius: 16rpx;
+    overflow: hidden;
+    box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.08);
+    background-color: #fff;
     
-    .title-section {
-      background-color: #fff;
-      padding: 30rpx;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .header {
+      padding: 40rpx 30rpx;
       border-bottom: 1px solid #f0f0f0;
+      position: relative;
+      background: linear-gradient(to right, #f6f6f6, #ffffff);
       
-      .title-content {
-        .title {
-          font-size: 40rpx;
-          color: #333;
-          font-weight: bold;
-          margin-bottom: 10rpx;
-          display: block;
-        }
-        
-        .pinyin {
-          font-size: 28rpx;
-          color: #999;
-        }
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 8rpx;
+        height: 60%;
+        background-color: #3C8999;
+        border-radius: 0 4rpx 4rpx 0;
       }
       
-      .difficulty-tag {
-        background-color: rgba(60, 137, 153, 0.1);
-        padding: 8rpx 20rpx;
-        border-radius: 30rpx;
-        
-        .tag-text {
-          font-size: 24rpx;
-          color: #3C8999;
-        }
+      .title {
+        font-size: 42rpx;
+        color: #333;
+        font-weight: bold;
+        margin-bottom: 15rpx;
+        display: block;
+      }
+      
+      .pinyin {
+        font-size: 32rpx;
+        color: #666;
+        display: block;
+        font-style: italic;
       }
     }
     
-    .media-section {
-      background-color: #fff;
-      padding: 20rpx 30rpx 40rpx;
+    .content {
+      padding: 30rpx;
       
-      .media-tabs {
-        display: flex;
-        border-bottom: 1px solid #f0f0f0;
-        margin-bottom: 30rpx;
+      .gesture-section {
+        margin-bottom: 40rpx;
         
-        .tab-item {
-          display: flex;
-          align-items: center;
-          padding: 20rpx 30rpx;
-          margin-right: 30rpx;
+        .section-title {
+          font-size: 34rpx;
+          color: #333;
+          font-weight: bold;
+          margin-bottom: 20rpx;
+          display: block;
           position: relative;
+          padding-left: 24rpx;
           
-          .iconfont {
-            font-size: 32rpx;
-            color: #999;
-            margin-right: 10rpx;
+          &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10rpx;
+            height: 32rpx;
+            background-color: #3C8999;
+            border-radius: 5rpx;
           }
+        }
+        
+        .gesture-steps {
+          background-color: #f9f9f9;
+          border-radius: 12rpx;
+          padding: 20rpx;
           
-          .tab-text {
-            font-size: 28rpx;
-            color: #999;
-          }
-          
-          &.active {
-            .iconfont, .tab-text {
-              color: #3C8999;
-              font-weight: bold;
+          .step {
+            font-size: 30rpx;
+            color: #444;
+            line-height: 1.6;
+            padding: 15rpx 10rpx;
+            display: flex;
+            align-items: center;
+            
+            &:not(:last-child) {
+              border-bottom: 1px dashed #e0e0e0;
             }
             
-            &:after {
-              content: '';
-              position: absolute;
-              bottom: -1rpx;
-              left: 0;
-              right: 0;
-              height: 4rpx;
-              background-color: #3C8999;
-              border-radius: 2rpx;
+            &::before {
+              content: '•';
+              margin-right: 15rpx;
+              color: #3C8999;
+              font-size: 36rpx;
             }
           }
         }
@@ -401,140 +406,123 @@ export default {
         .sign-image {
           width: 100%;
           height: 500rpx;
-          border-radius: 10rpx;
+          margin-bottom: 30rpx;
+          border-radius: 12rpx;
+          box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
           background-color: #f5f5f5;
+          transition: all 0.3s ease;
+          
+          &:active {
+            transform: scale(0.98);
+          }
         }
         
         .sign-video {
           width: 100%;
           height: 500rpx;
-          border-radius: 10rpx;
-        }
-      }
-    }
-    
-    .gesture-section {
-      background-color: #fff;
-      padding: 30rpx;
-      margin-top: 20rpx;
-      
-      .section-header {
-        margin-bottom: 30rpx;
-        
-        .section-title {
-          font-size: 32rpx;
-          color: #333;
-          font-weight: bold;
-        }
-      }
-      
-      .gesture-steps {
-        .step-item {
-          display: flex;
           margin-bottom: 20rpx;
-          
-          .step-number {
-            width: 50rpx;
-            height: 50rpx;
-            background-color: #3C8999;
-            color: #fff;
-            border-radius: 25rpx;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 26rpx;
-            margin-right: 20rpx;
-            flex-shrink: 0;
-          }
-          
-          .step-text {
-            font-size: 28rpx;
-            color: #333;
-            line-height: 1.6;
-            padding-top: 10rpx;
-          }
-        }
-        
-        .empty-steps {
-          padding: 40rpx 0;
-          text-align: center;
-          color: #999;
-          font-size: 28rpx;
-        }
-      }
-    }
-    
-    .related-section {
-      background-color: #fff;
-      padding: 30rpx;
-      margin-top: 20rpx;
-      
-      .section-header {
-        margin-bottom: 30rpx;
-        
-        .section-title {
-          font-size: 32rpx;
-          color: #333;
-          font-weight: bold;
-        }
-      }
-      
-      .related-scrollview {
-        white-space: nowrap;
-        
-        .related-item {
-          display: inline-block;
-          width: 200rpx;
-          margin-right: 20rpx;
-          
-          .related-image {
-            width: 200rpx;
-            height: 200rpx;
-            border-radius: 10rpx;
-            background-color: #f5f5f5;
-            margin-bottom: 10rpx;
-          }
-          
-          .related-name {
-            font-size: 26rpx;
-            color: #333;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            text-align: center;
-          }
+          border-radius: 12rpx;
+          box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
         }
       }
     }
   }
   
-  .bottom-actions {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
+  .loading-section {
+    height: 400rpx;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     background-color: #fff;
-    padding: 20rpx 30rpx;
-    box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+    margin: 30rpx;
+    border-radius: 16rpx;
+    box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.08);
     
-    .practice-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(to right, #3C8999, #55a5b5);
-      height: 90rpx;
-      border-radius: 45rpx;
+    .loader {
+      width: 70rpx;
+      height: 70rpx;
+      border-radius: 50%;
+      border: 4rpx solid rgba(60, 137, 153, 0.2);
+      border-top-color: #3C8999;
+      animation: spin 1s infinite linear;
+      margin-bottom: 30rpx;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    text {
+      color: #999;
+      font-size: 30rpx;
+    }
+  }
+  
+  .error-section {
+    height: 400rpx;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #fff;
+    margin: 30rpx;
+    border-radius: 16rpx;
+    box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.08);
+    
+    text {
+      color: #ff6b6b;
+      font-size: 30rpx;
+      margin-bottom: 30rpx;
+    }
+    
+    .retry-btn {
+      padding: 15rpx 40rpx;
+      background-color: #3C8999;
       color: #fff;
-      font-size: 32rpx;
+      font-size: 28rpx;
+      border-radius: 40rpx;
+      box-shadow: 0 4rpx 10rpx rgba(60, 137, 153, 0.3);
+    }
+  }
+  
+  .navigation-buttons {
+    display: flex;
+    justify-content: space-between;
+    padding: 30rpx;
+    
+    .nav-button {
+      padding: 20rpx 40rpx;
+      background-color: #3C8999;
+      color: #fff;
+      font-size: 28rpx;
+      border-radius: 40rpx;
+      box-shadow: 0 4rpx 10rpx rgba(60, 137, 153, 0.3);
       
-      .iconfont {
-        font-size: 36rpx;
-        margin-right: 10rpx;
+      &:active {
+        transform: scale(0.98);
       }
       
-      &::after {
-        border: none;
+      &.disabled {
+        background-color: #cccccc;
+        box-shadow: none;
       }
+    }
+  }
+  
+  .empty-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200rpx;
+    background-color: #f5f5f5;
+    border-radius: 12rpx;
+    margin-bottom: 30rpx;
+    
+    text {
+      color: #999;
+      font-size: 28rpx;
     }
   }
 }
