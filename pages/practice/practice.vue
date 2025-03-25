@@ -284,40 +284,32 @@ export default {
     },
     
     // 选择选项
-    selectOption(option) {
-      // Already selected an option, don't allow another selection
-      if (this.selectedOption) return;
-      
-      this.selectedOption = option;
-      
-      // Compare the IDs as strings to ensure consistent comparison
-      const selectedId = String(option.id);
-      const correctId = String(this.currentQuestion.id);
-      
-      // Set the isCorrect flag based on the comparison result
-      this.isCorrect = selectedId === correctId;
-      
-      if (this.isCorrect) {
-        // Correct answer
-        this.score++;
-        // Play correct sound
-        const correctAudio = uni.createInnerAudioContext();
-        correctAudio.src = '/static/audio/correct.mp3';
-        correctAudio.play();
-        
-        // Report correct answer to the learning record API
-        this.updateLearningRecord(this.currentQuestion.id, true);
-      } else {
-        // Incorrect answer
-        // Play wrong sound
-        const wrongAudio = uni.createInnerAudioContext();
-        wrongAudio.src = '/static/audio/wrong.mp3';
-        wrongAudio.play();
-        
-        // Report incorrect answer to the learning record API
-        this.updateLearningRecord(this.currentQuestion.id, false);
-      }
-    },
+   selectOption(option) {
+     // Already selected an option, don't process again
+     if (this.selectedOption) return;
+     
+     this.selectedOption = option;
+     
+     // Determine if the answer is correct
+     const isCorrect = option.id === this.currentQuestion.id;
+     
+     // Record this learning activity to the backend
+     this.recordLearningActivity(this.currentQuestion.id, isCorrect);
+     
+     // Update local score
+     if (isCorrect) {
+       this.score++;
+       // Play correct sound effect
+       const correctAudio = uni.createInnerAudioContext();
+       correctAudio.src = '/static/audio/correct.mp3';
+       correctAudio.play();
+     } else {
+       // Play wrong sound effect
+       const wrongAudio = uni.createInnerAudioContext();
+       wrongAudio.src = '/static/audio/wrong.mp3';
+       wrongAudio.play();
+     }
+   },
     
     // 记录学习进度
     async updateLearningRecord(signId, isCorrect) {
@@ -338,6 +330,63 @@ export default {
         // Continue with the practice experience even if the record update fails
       }
     },
+	async recordLearningActivity(signId, isCorrect) {
+	  try {
+	    const token = uni.getStorageSync('token');
+	    if (!token) {
+	      console.error('未登录，无法记录学习活动');
+	      return;
+	    }
+	    
+	    console.log(`记录学习活动: 手语ID ${signId}, 答案 ${isCorrect ? '正确' : '错误'}`);
+	    
+	    const res = await http.post('/learning/record', {
+	      signId: signId,
+	      isCorrect: isCorrect
+	    }, {
+	      header: {
+	        'Authorization': token,
+	        'Content-Type': 'application/x-www-form-urlencoded'
+	      }
+	    });
+	    
+	    if (res.statusCode === 200 && res.data.code === 0) {
+	      console.log('学习记录已保存');
+	    } else {
+	      console.error('保存学习记录失败:', res.data.message);
+	    }
+	  } catch (error) {
+	    console.error('记录学习活动失败:', error);
+	  }
+	},
+	async recordPracticeCompletion(successPercentage) {
+	  // This could be a separate API call or use the regular learning record endpoint
+	  // For now, we'll use the existing learning/record endpoint with a special signId (-1)
+	  // that indicates this is a practice session completion
+	  try {
+	    const token = uni.getStorageSync('token');
+	    if (!token) return;
+	    
+	    const avgCorrect = successPercentage >= 70; // Consider 70% or higher as "correct" overall
+	    
+	    // Use a special signId to indicate this is a practice session summary
+	    // Backend can handle this specially if needed
+	    const practiceSessionSignId = this.currentQuestion.id || 1;
+	    
+	    await http.post('/learning/record', {
+	      signId: practiceSessionSignId,
+	      isCorrect: avgCorrect
+	    }, {
+	      header: {
+	        'Authorization': token,
+	        'Content-Type': 'application/x-www-form-urlencoded'
+	      }
+	    });
+	  } catch (error) {
+	    console.error('记录练习完成状态失败:', error);
+	  }
+	},
+
     
     // 获取选项类名
     getOptionClass(option) {
@@ -355,7 +404,7 @@ export default {
     // 下一题
     nextQuestion() {
       this.currentQuestionIndex++;
-	  this.selectedOption = null;
+	  this.selectedOption = null; 
 	  this.isCorrect = false;
       
       // 检查是否完成所有题目
@@ -369,22 +418,26 @@ export default {
     
     // 计算百分比
     calculatePercentage() {
-      return Math.round((this.score / this.totalQuestions) * 100);
-    },
-    
-    // 获取结果消息
-    getResultMessage() {
-      const percentage = this.calculatePercentage();
-      
-      if (percentage >= 90) {
-        return '太棒了！你对手语的掌握非常出色！';
-      } else if (percentage >= 70) {
-        return '很好！你已经掌握了大部分手语！';
-      } else if (percentage >= 50) {
-        return '不错！继续努力，你会更进步的！';
-      } else {
-        return '再接再厉！多加练习，你会进步的！';
-      }
+      const percentage = Math.round((this.score / this.totalQuestions) * 100);
+        
+        // Record the final practice session as a learning activity with overall success rate
+        this.recordPracticeCompletion(percentage);
+        
+        uni.showModal({
+          title: '练习完成',
+          content: `你的得分：${this.score}/${this.totalQuestions} (${percentage}%)`,
+          confirmText: '再来一次',
+          cancelText: '返回',
+          success: (res) => {
+            if (res.confirm) {
+              // Restart practice
+              this.resetPractice();
+            } else {
+              // Return to home
+              uni.navigateBack();
+            }
+          }
+        });
     },
     
     // 重置练习

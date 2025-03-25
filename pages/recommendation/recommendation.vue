@@ -57,29 +57,56 @@ export default {
   
   methods: {
     async loadRecommendations() {
-      this.loading = true
+      this.loading = true;
       
       try {
-        const res = await http.get('/learning/recommendations', {
-          params: { limit: 5 }
-        })
-        
-        if (res.data.code === 0) {
-          this.recommendations = res.data.data
-        } else {
+        const token = uni.getStorageSync('token');
+        if (!token) {
           uni.showToast({
-            title: '获取推荐失败',
+            title: '请先登录',
             icon: 'none'
-          })
+          });
+          
+          setTimeout(() => {
+            uni.reLaunch({
+              url: '/pages/login/login'
+            });
+          }, 1500);
+          
+          return;
+        }
+        
+        const res = await http.get('/learning/recommendations', {
+          params: { limit: 5 },
+          header: {
+            'Authorization': token
+          }
+        });
+        
+        console.log('推荐API响应:', res);
+        
+        if (res.statusCode === 200 && res.data.code === 0) {
+          this.recommendations = res.data.data || [];
+          
+          // If API returned empty results, don't fall back to mock data
+          // This lets the user know they need more learning history
+          if (this.recommendations.length === 0) {
+            console.log('API没有返回推荐内容');
+          }
+        } else {
+          throw new Error(res.data.message || '获取推荐失败');
         }
       } catch (error) {
-        console.error('加载推荐内容失败:', error)
+        console.error('加载推荐内容失败:', error);
         uni.showToast({
-          title: '获取推荐失败',
+          title: '获取推荐失败: ' + (error.message || '未知错误'),
           icon: 'none'
-        })
+        });
+        
+        // Don't use mock data, show the error to encourage fixing the API issues
+        this.recommendations = [];
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
     
@@ -99,11 +126,42 @@ export default {
     
     async recordLearning(signId) {
       try {
-        await http.post('/learning/record', {
+        const token = uni.getStorageSync('token');
+        if (!token) {
+          console.error('未登录，无法记录学习活动');
+          return;
+        }
+        
+        console.log(`从推荐页记录学习活动: 手语ID ${signId}`);
+        
+        const res = await http.post('/learning/record', {
           signId: signId
-        })
+        }, {
+          header: {
+            'Authorization': token,
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        });
+        
+        if (res.statusCode === 200 && res.data.code === 0) {
+          console.log('学习记录已保存');
+        } else {
+          console.error('保存学习记录失败:', res.data.message || '未知错误');
+          
+          // Show error to user
+          uni.showToast({
+            title: '记录学习失败',
+            icon: 'none'
+          });
+        }
       } catch (error) {
-        console.error('记录学习行为失败:', error)
+        console.error('记录学习活动失败:', error);
+        
+        // Show meaningful error to user
+        uni.showToast({
+          title: '记录学习失败: ' + (error.message || '网络错误'),
+          icon: 'none'
+        });
       }
     },
     

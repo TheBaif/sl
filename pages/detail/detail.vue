@@ -132,8 +132,17 @@ export default {
   },
   
   onLoad(options) {
-    this.loadSignDetail(options.index)
-    this.getRelatedSigns()
+    // this.loadSignDetail(options.index)
+    // this.getRelatedSigns()
+	const results = uni.getStorageSync('searchResults');
+	  if (results && options.index) {
+	    this.searchResult = results[parseInt(options.index)];
+	    
+	    // Record this detailed view as a learning activity
+	    if (this.searchResult && this.searchResult.id) {
+	      this.recordDetailedView(this.searchResult.id);
+	    }
+	  }
   },
   
   methods: {
@@ -167,6 +176,38 @@ export default {
         console.error('保存学习记录失败:', error)
       }
     },
+	async recordDetailedView(signId) {
+	  try {
+	    const token = uni.getStorageSync('token');
+	    if (!token) {
+	      console.error('未登录，无法记录学习活动');
+	      return;
+	    }
+	    
+	    console.log(`记录详细学习: 手语ID ${signId}`);
+	    
+	    // This viewing is more intensive learning than just list view
+	    // We can consider it more valuable by sending an extended viewing parameter
+	    const res = await http.post('/learning/record', {
+	      signId: signId,
+	      // Using extended time parameter to indicate deeper learning
+	      extendedView: true
+	    }, {
+	      header: {
+	        'Authorization': token,
+	        'Content-Type': 'application/x-www-form-urlencoded'
+	      }
+	    });
+	    
+	    if (res.statusCode === 200 && res.data.code === 0) {
+	      console.log('详细学习记录已保存');
+	    } else {
+	      console.error('保存详细学习记录失败:', res.data.message);
+	    }
+	  } catch (error) {
+	    console.error('记录详细学习活动失败:', error);
+	  }
+	},
     
     async getRelatedSigns() {
       // Mock related signs - in a real app, this would come from an API
