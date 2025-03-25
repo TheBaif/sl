@@ -130,7 +130,7 @@
 
 <script>
 import http from '@/utils/request.js'
-
+import detailHelper from '@/utils/detailHelper.js'
 export default {
   data() {
     return {
@@ -357,15 +357,12 @@ export default {
     
     // 前往详情页
     goToDetail(index) {
-      const selectedSign = this.wordList[this.getDisplayedIndex(index)];
+      // 格式化数据并存储
+      const standardData = detailHelper.prepareDetailData(this.wordList);
+      uni.setStorageSync('searchResults', standardData);
       
-      // Record this viewing activity as a learning event
-      this.recordLearningActivity(selectedSign.id);
-      
-      // Store the search results and navigate to detail
-      uni.setStorageSync('searchResults', this.wordList);
       uni.navigateTo({
-        url: `/pages/detail/detail?index=${this.getDisplayedIndex(index)}`
+        url: `/pages/detail/detail?index=${index}`
       });
     },
     // 分页控制方法

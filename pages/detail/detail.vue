@@ -113,15 +113,21 @@
 
 <script>
 import http from '@/utils/request.js'
-
+import detailHelper from '@/utils/detailHelper.js'
 export default {
   data() {
     return {
       signData: {},
       activeTab: 'image',
       isFavorite: false,
-      relatedSigns: []
-    }
+      relatedSigns: [],
+	   searchResult: {},
+	        loading: true,
+	        errorInfo: {
+	          image: false,
+	          video: false
+	        },
+			}
   },
   
   computed: {
@@ -132,17 +138,27 @@ export default {
   },
   
   onLoad(options) {
-    // this.loadSignDetail(options.index)
-    // this.getRelatedSigns()
-	const results = uni.getStorageSync('searchResults');
-	  if (results && options.index) {
-	    this.searchResult = results[parseInt(options.index)];
-	    
-	    // Record this detailed view as a learning activity
-	    if (this.searchResult && this.searchResult.id) {
-	      this.recordDetailedView(this.searchResult.id);
-	    }
-	  }
+   try {
+         const results = uni.getStorageSync('searchResults');
+         if (results && options.index) {
+           const index = parseInt(options.index);
+           if (results[index]) {
+             this.searchResult = results[index];
+           } else {
+             throw new Error('数据索引无效');
+           }
+         } else {
+           throw new Error('未找到详情数据');
+         }
+       } catch (error) {
+         console.error('加载详情失败:', error);
+         uni.showToast({
+           title: '加载详情失败',
+           icon: 'none'
+         });
+       } finally {
+         this.loading = false;
+       }
   },
   
   methods: {

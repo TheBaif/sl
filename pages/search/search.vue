@@ -65,7 +65,7 @@
 
 <script>
 import http from '@/utils/request.js'
-
+import detailHelper from '@/utils/detailHelper.js'
 export default {
   data() {
     return {
@@ -154,12 +154,15 @@ export default {
       }, 500)
     },
     
-    goToDetail(index) {
-      uni.setStorageSync('searchResults', this.searchResults)
-      uni.navigateTo({
-        url: `/pages/detail/detail?index=${index}`
-      })
-    },
+   goToDetail(index) {
+     // 格式化数据并存储
+     const standardData = detailHelper.prepareDetailData(this.searchResults);
+     uni.setStorageSync('searchResults', standardData);
+     
+     uni.navigateTo({
+       url: `/pages/detail/detail?index=${index}`
+     });
+   },
     
     async handleSearch() {
       if (!this.keyword.trim()) {

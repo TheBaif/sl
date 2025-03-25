@@ -42,7 +42,7 @@
 
 <script>
 import http from '@/utils/request.js'
-
+import detailHelper from '@/utils/detailHelper.js'
 export default {
   data() {
     return {
@@ -110,19 +110,19 @@ export default {
       }
     },
     
-    goToSignDetail(sign) {
-      // 记录学习行为
-      this.recordLearning(sign.id)
-      
-      // 将选择的手语缓存
-      const results = [sign]
-      uni.setStorageSync('searchResults', results)
-      
-      // 跳转到详情页
-      uni.navigateTo({
-        url: `/pages/detail/detail?index=0`
-      })
-    },
+   goToSignDetail(sign) {
+     // 记录学习行为
+     this.recordLearning(sign.id);
+     
+     // 格式化数据并存储
+     const standardData = detailHelper.prepareDetailData(sign);
+     uni.setStorageSync('searchResults', standardData);
+     
+     // 跳转到详情页
+     uni.navigateTo({
+       url: `/pages/detail/detail?index=0`
+     });
+   },
     
     async recordLearning(signId) {
       try {
