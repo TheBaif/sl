@@ -320,6 +320,35 @@ export default {
         this.loading = false;
       }
     },
+	async recordLearningActivity(signId) {
+	  try {
+	    const token = uni.getStorageSync('token');
+	    if (!token) {
+	      console.error('未登录，无法记录学习活动');
+	      return;
+	    }
+	    
+	    console.log(`记录学习活动: 查看手语ID ${signId}`);
+	    
+	    const res = await http.post('/learning/record', {
+	      signId: signId,
+	      // No isCorrect parameter since this is just viewing content
+	    }, {
+	      header: {
+	        'Authorization': token,
+	        'Content-Type': 'application/x-www-form-urlencoded'
+	      }
+	    });
+	    
+	    if (res.statusCode === 200 && res.data.code === 0) {
+	      console.log('学习记录已保存');
+	    } else {
+	      console.error('保存学习记录失败:', res.data.message);
+	    }
+	  } catch (error) {
+	    console.error('记录学习活动失败:', error);
+	  }
+	},
     
     // 获取原始索引（分页后的索引转为原始数组索引）
     getDisplayedIndex(index) {
@@ -328,14 +357,17 @@ export default {
     
     // 前往详情页
     goToDetail(index) {
-      // 将整个列表存入缓存
+      const selectedSign = this.wordList[this.getDisplayedIndex(index)];
+      
+      // Record this viewing activity as a learning event
+      this.recordLearningActivity(selectedSign.id);
+      
+      // Store the search results and navigate to detail
       uni.setStorageSync('searchResults', this.wordList);
-      // 跳转到详情页
       uni.navigateTo({
-        url: `/pages/detail/detail?index=${index}`
+        url: `/pages/detail/detail?index=${this.getDisplayedIndex(index)}`
       });
     },
-    
     // 分页控制方法
     goToFirstPage() {
       if (this.currentPage <= 1 || this.loading) return;

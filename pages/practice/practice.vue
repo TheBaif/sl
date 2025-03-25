@@ -296,7 +296,7 @@ export default {
      // Record this learning activity to the backend
      this.recordLearningActivity(this.currentQuestion.id, isCorrect);
      
-     // Update local score
+     // Update local score and play sound
      if (isCorrect) {
        this.score++;
        // Play correct sound effect
@@ -340,10 +340,16 @@ export default {
 	    
 	    console.log(`记录学习活动: 手语ID ${signId}, 答案 ${isCorrect ? '正确' : '错误'}`);
 	    
-	    const res = await http.post('/learning/record', {
-	      signId: signId,
-	      isCorrect: isCorrect
-	    }, {
+	    // Prepare request parameters
+	    const params = new URLSearchParams();
+	    params.append('signId', signId);
+	    
+	    // Only add isCorrect if it's a boolean value (quiz result)
+	    if (typeof isCorrect === 'boolean') {
+	      params.append('isCorrect', isCorrect);
+	    }
+	    
+	    const res = await http.post('/learning/record', params, {
 	      header: {
 	        'Authorization': token,
 	        'Content-Type': 'application/x-www-form-urlencoded'
@@ -353,12 +359,13 @@ export default {
 	    if (res.statusCode === 200 && res.data.code === 0) {
 	      console.log('学习记录已保存');
 	    } else {
-	      console.error('保存学习记录失败:', res.data.message);
+	      console.error('保存学习记录失败:', res.data.message || '未知错误');
 	    }
 	  } catch (error) {
 	    console.error('记录学习活动失败:', error);
 	  }
 	},
+
 	async recordPracticeCompletion(successPercentage) {
 	  // This could be a separate API call or use the regular learning record endpoint
 	  // For now, we'll use the existing learning/record endpoint with a special signId (-1)
