@@ -154,13 +154,9 @@ export default {
       }, 500)
     },
     
-   goToDetail(index) {
-     // 格式化数据并存储
-     const standardData = detailHelper.prepareDetailData(this.searchResults);
-     uni.setStorageSync('searchResults', standardData);
-     
+   goToDetail(item) {
      uni.navigateTo({
-       url: `/pages/detail/detail?index=${index}`
+       url: `/pages/detail/detail?id=${item.id}`
      });
    },
     

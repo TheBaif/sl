@@ -1,162 +1,86 @@
 <template>
   <view class="detail-container">
-    <!-- Header with Navigation -->
-    <view class="detail-header">
-      <view class="header-left">
-        <view class="back-button" @tap="navigateBack">
-          <text class="iconfont">&#xe679;</text>
-        </view>
-        <text class="header-title">手语详情</text>
-      </view>
-      <view class="header-right">
-        <view class="like-button" @tap="toggleFavorite">
-          <text class="iconfont" :class="{'liked': isFavorite}">&#xe66b;</text>
-        </view>
-      </view>
+    <!-- 加载中状态 -->
+    <view v-if="loading" class="loading-state">
+      <view class="loader"></view>
+      <text>加载中，请稍候...</text>
     </view>
     
-    <!-- Content Area -->
-    <scroll-view scroll-y class="detail-content" enable-back-to-top>
-      <!-- Title Section -->
-      <view class="title-section">
-        <view class="title-content">
-          <text class="title">{{ signData.name || '未知手语' }}</text>
-          <text class="pinyin">{{ signData.pinyin || '无拼音' }}</text>
-        </view>
-        
-        <view class="difficulty-tag" v-if="signData.difficulty">
-          <text class="tag-text">{{ getDifficultyText(signData.difficulty) }}</text>
-        </view>
-      </view>
-      
-      <!-- Media Section -->
-      <view class="media-section">
-        <view class="media-tabs">
-          <view 
-            class="tab-item" 
-            :class="{'active': activeTab === 'image'}"
-            @tap="activeTab = 'image'"
-          >
-            <text class="iconfont">&#xe65d;</text>
-            <text class="tab-text">手语图</text>
-          </view>
-          <view 
-            class="tab-item" 
-            :class="{'active': activeTab === 'video'}"
-            @tap="activeTab = 'video'"
-            v-if="signData.wordVideoSrc"
-          >
-            <text class="iconfont">&#xe666;</text>
-            <text class="tab-text">教学视频</text>
-          </view>
-        </view>
-        
-        <view class="media-content">
-          <view v-if="activeTab === 'image'">
-            <image 
-              :src="signData.imageSrc || '/static/placeholder-sign.png'" 
-              mode="aspectFit" 
-              class="sign-image"
-              @tap="previewImage(signData.imageSrc)"
-            ></image>
-          </view>
-          
-          <view v-else-if="activeTab === 'video' && signData.wordVideoSrc">
-            <video 
-              :src="signData.wordVideoSrc"
-              class="sign-video"
-              :controls="true"
-              :show-play-btn="true"
-              :enable-play-gesture="true"
-              :show-fullscreen-btn="true"
-              :object-fit="'cover'"
-              :initial-time="0"
-            ></video>
-          </view>
-        </view>
-      </view>
-      
-      <!-- Gesture Instructions -->
-      <view class="gesture-section">
-        <view class="section-header">
-          <text class="section-title">手势说明</text>
-        </view>
-        
-        <view class="gesture-steps">
-          <view 
-            class="step-item"
-            v-for="(step, index) in gestureSteps" 
-            :key="index" 
-          >
-            <view class="step-number">{{ index + 1 }}</view>
-            <text class="step-text">{{ step }}</text>
-          </view>
-          
-          <view class="empty-steps" v-if="!gestureSteps.length">
-            <text>暂无手势说明</text>
-          </view>
-        </view>
-      </view>
-      
-      
-    </scroll-view>
+    <!-- 错误状态 -->
+    <view v-else-if="error" class="error-state">
+      <text class="error-message">{{ errorMessage }}</text>
+      <button class="retry-button" @tap="fetchSignDetail">重试</button>
+    </view>
     
-    <!-- Bottom Actions Bar -->
-    <view class="bottom-actions">
-      <button class="practice-btn" @tap="startPractice">
-        <text class="iconfont">&#xe665;</text>
-        <text>练习此手语</text>
-      </button>
+    <!-- 内容显示 -->
+    <view v-else class="detail-content">
+      <view class="header">
+        <text class="title">{{ searchResult.name }}</text>
+        <text class="pinyin">{{ searchResult.pinyin }}</text>
+      </view>
+      
+      <view class="content">
+        <!-- 手势说明部分 -->
+        <view class="gesture-section">
+          <text class="section-title">手势说明：</text>
+          <view class="gesture-steps">
+            <text v-for="(step, index) in gestureSteps" 
+                 :key="index" 
+                 class="step">{{ step }}</text>
+          </view>
+        </view>
+        
+        <!-- 媒体内容部分 -->
+        <view class="media-content">
+          <image v-if="searchResult.imageSrc" 
+                 :src="searchResult.imageSrc" 
+                 mode="aspectFit" 
+                 class="sign-image"
+                 @tap="previewImage(searchResult.imageSrc)"
+                 @error="handleImageError"></image>
+          
+          <video v-if="searchResult.wordVideoSrc" 
+                 :src="searchResult.wordVideoSrc"
+                 class="sign-video"
+                 :controls="true"
+                 :show-play-btn="true"
+                 :enable-play-gesture="true"
+                 :show-fullscreen-btn="true"
+                 :object-fit="'cover'"
+                 :initial-time="0"></video>
+        </view>
+      </view>
     </view>
   </view>
 </template>
-
 <script>
 import http from '@/utils/request.js'
 import detailHelper from '@/utils/detailHelper.js'
 export default {
   data() {
     return {
-      signData: {},
-      activeTab: 'image',
-      isFavorite: false,
-      relatedSigns: [],
-	   searchResult: {},
-	        loading: true,
-	        errorInfo: {
-	          image: false,
-	          video: false
-	        },
-			}
+      signId: null,
+            searchResult: {},
+            loading: true,
+            error: false,
+            errorMessage: ''
+  }
   },
   
   computed: {
-    gestureSteps() {
-      if (!this.signData.gesture) return []
-      return this.signData.gesture.split('|||').map(step => step.trim())
-    }
-  },
+      gestureSteps() {
+        if (!this.searchResult.gesture) return [];
+        return this.searchResult.gesture.split('|||').map(step => step.trim());
+      }
+    },
   
   onLoad(options) {
-   try {
-         const results = uni.getStorageSync('searchResults');
-         if (results && options.index) {
-           const index = parseInt(options.index);
-           if (results[index]) {
-             this.searchResult = results[index];
-           } else {
-             throw new Error('数据索引无效');
-           }
-         } else {
-           throw new Error('未找到详情数据');
-         }
-       } catch (error) {
-         console.error('加载详情失败:', error);
-         uni.showToast({
-           title: '加载详情失败',
-           icon: 'none'
-         });
-       } finally {
+   if (options.id) {
+         this.signId = options.id;
+         this.fetchSignDetail();
+       } else {
+         this.error = true;
+         this.errorMessage = '参数错误，未获取到手语ID';
          this.loading = false;
        }
   },
@@ -224,6 +148,31 @@ export default {
 	    console.error('记录详细学习活动失败:', error);
 	  }
 	},
+	async fetchSignDetail() {
+	      try {
+	        this.loading = true;
+	        
+	        const res = await uni.request({
+	          url: `http://localhost:8080/sign/detail/${this.signId}`,
+	          method: 'GET',
+	          header: {
+	            'Authorization': uni.getStorageSync('token')
+	          }
+	        });
+	        
+	        if (res.statusCode === 200 && res.data.code === 0) {
+	          this.searchResult = res.data.data;
+	        } else {
+	          throw new Error(res.data?.message || '获取详情失败');
+	        }
+	      } catch (error) {
+	        console.error('获取手语详情失败:', error);
+	        this.error = true;
+	        this.errorMessage = error.message || '获取详情失败';
+	      } finally {
+	        this.loading = false;
+	      }
+	    },
     
     async getRelatedSigns() {
       // Mock related signs - in a real app, this would come from an API
@@ -234,15 +183,35 @@ export default {
         { id: 4, name: '朋友', imageSrc: '/static/signs/friend.png' }
       ]
     },
+	debugDetailData() {
+	    console.group('详情页数据调试');
+	    console.log('当前详情数据:', this.searchResult);
+	    console.log('图片URL:', this.searchResult.imageSrc);
+	    console.log('视频URL:', this.searchResult.wordVideoSrc);
+	    console.log('手势说明:', this.gestureSteps);
+	    console.log('错误信息:', this.errorInfo);
+	    console.groupEnd();
+	    
+	    // 显示调试信息
+	    uni.showModal({
+	      title: '调试信息',
+	      content: `ID: ${this.searchResult.id}\n`+
+	               `图片: ${this.searchResult.imageSrc ? '有' : '无'}\n`+
+	               `视频: ${this.searchResult.wordVideoSrc ? '有' : '无'}\n`+
+	               `手势: ${this.gestureSteps && this.gestureSteps.length ? '有' : '无'}`,
+	      showCancel: false
+	    });
+	  },
     
-    previewImage(url) {
-      if (!url) return
       
-      uni.previewImage({
-        urls: [url],
-        current: url
-      })
-    },
+     previewImage(url) {
+           if (!url) return;
+           uni.previewImage({
+             urls: [url],
+             current: url
+           });
+         }
+       },
     
     toggleFavorite() {
       this.isFavorite = !this.isFavorite
@@ -275,7 +244,7 @@ export default {
       return difficultyMap[difficulty] || '未知'
     }
   }
-}
+
 </script>
 
 <style lang="scss">

@@ -114,13 +114,9 @@ export default {
      // 记录学习行为
      this.recordLearning(sign.id);
      
-     // 格式化数据并存储
-     const standardData = detailHelper.prepareDetailData(sign);
-     uni.setStorageSync('searchResults', standardData);
-     
-     // 跳转到详情页
+     // 直接跳转到详情页
      uni.navigateTo({
-       url: `/pages/detail/detail?index=0`
+       url: `/pages/detail/detail?id=${sign.id}`
      });
    },
     
