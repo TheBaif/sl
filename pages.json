@@ -81,13 +81,6 @@
 			}
 		},
 		{
-			"path" : "pages/progress-dashboard/progress-dashboard",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		},
-		{
 			"path" : "pages/custom-sign/custom-sign",
 			"style" : 
 			{
@@ -103,6 +96,13 @@
 		},
 		{
 			"path" : "pages/practice-verification/index",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/learning-progress/learning-progress",
 			"style" : 
 			{
 				"navigationBarTitleText" : ""
