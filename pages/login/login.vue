@@ -71,30 +71,38 @@ export default {
       
       try {
         this.loading = true
-        const res = await http.post('/user/login', formData, {
+        console.log('Attempting login with:', formData.username)
+        
+        // Convert form data to URL-encoded format
+        const params = new URLSearchParams()
+        params.append('username', formData.username)
+        params.append('password', formData.password)
+        
+        const res = await http.post('/user/login', params.toString(), {
           header: {
             'Content-Type': 'application/x-www-form-urlencoded'
           }
         })
         
-        console.log('登录响应:', res)
+        console.log('Login response:', res)
         
         if (res.statusCode === 200 && res.data.code === 0) {
-          // 直接存储token，不添加Bearer前缀
+          // Get token from response data
           const token = res.data.data
           if (!token) {
             throw new Error('登录失败：未获取到token')
           }
           
-          // 直接存储原始token
+          // Store token in local storage
           uni.setStorageSync('token', token)
-          console.log('存储的token:', token)
+          console.log('Token stored in local storage:', token)
           
           uni.showToast({
             title: '登录成功',
             icon: 'success'
           })
           
+          // Navigate to home page after successful login
           setTimeout(() => {
             uni.reLaunch({
               url: '/pages/index/index'
@@ -104,7 +112,7 @@ export default {
           throw new Error(res.data.message || '登录失败')
         }
       } catch (error) {
-        console.error('登录失败:', error)
+        console.error('Login failed:', error)
         uni.showToast({
           title: error.message || '登录失败，请重试',
           icon: 'none'
