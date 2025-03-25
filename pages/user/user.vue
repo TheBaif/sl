@@ -39,15 +39,6 @@
         </view>
       </view>
       
-      <view class="info-section">
-        <view class="info-item">
-          <text class="label">学习进度</text>
-          <view class="value-container">
-            <text class="value">查看详情</text>
-            <uni-icons type="right" size="18" color="#999" @click="navigateToProgressDashboard"></uni-icons>
-          </view>
-        </view>
-      </view>
       
       <view class="action-buttons">
         <button class="logout-btn" @tap="handleLogout">退出登录</button>
@@ -417,12 +408,7 @@ export default {
       }
     },
     
-    // Navigate to progress dashboard
-    navigateToProgressDashboard() {
-      uni.navigateTo({
-        url: '/pages/progress-dashboard/progress-dashboard'
-      });
-    },
+   
     
     // Logout
     handleLogout() {
