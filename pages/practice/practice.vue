@@ -294,7 +294,6 @@ export default {
      const isCorrect = option.id === this.currentQuestion.id;
      
      // Record this learning activity to the backend
-     this.recordLearningActivity(this.currentQuestion.id, isCorrect);
      
      // Update local score and play sound
      if (isCorrect) {
@@ -309,6 +308,7 @@ export default {
        wrongAudio.src = '/static/audio/wrong.mp3';
        wrongAudio.play();
      }
+	 this.recordLearningActivity(Number(currentQuestion.id, isCorrect));
    },
     
     // 记录学习进度
@@ -332,37 +332,19 @@ export default {
     },
 	async recordLearningActivity(signId, isCorrect) {
 	  try {
-	    const token = uni.getStorageSync('token');
-	    if (!token) {
-	      console.error('未登录，无法记录学习活动');
-	      return;
-	    }
-	    
-	    console.log(`记录学习活动: 手语ID ${signId}, 答案 ${isCorrect ? '正确' : '错误'}`);
-	    
-	    // Prepare request parameters
-	    const params = new URLSearchParams();
-	    params.append('signId', signId);
-	    
-	    // Only add isCorrect if it's a boolean value (quiz result)
-	    if (typeof isCorrect === 'boolean') {
-	      params.append('isCorrect', isCorrect);
-	    }
-	    
-	    const res = await http.post('/learning/record', params, {
+	    // 使用表单格式
+	    await http.post('/learning/record', {
+	      signId: signId,
+	      isCorrect: isCorrect
+	    }, {
 	      header: {
-	        'Authorization': token,
-	        'Content-Type': 'application/json'
+	        'Content-Type': 'application/x-www-form-urlencoded'
 	      }
 	    });
 	    
-	    if (res.statusCode === 200 && res.data.code === 0) {
-	      console.log('学习记录已保存');
-	    } else {
-	      console.error('保存学习记录失败:', res.data.message || '未知错误');
-	    }
+	    console.log('学习记录已保存');
 	  } catch (error) {
-	    console.error('记录学习活动失败:', error);
+	    console.error('记录学习行为失败:', error);
 	  }
 	},
 
