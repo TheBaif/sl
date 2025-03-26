@@ -352,7 +352,7 @@ export default {
 	    const res = await http.post('/learning/record', params, {
 	      header: {
 	        'Authorization': token,
-	        'Content-Type': 'application/x-www-form-urlencoded'
+	        'Content-Type': 'application/json'
 	      }
 	    });
 	    
