@@ -286,7 +286,7 @@ export default {
     // 选择选项
    selectOption(option) {
      // Already selected an option, don't process again
-     if (this.selectedOption) return;
+     if (this.selectedOption || !this.currentQuestion) return;
      
      this.selectedOption = option;
      
@@ -308,7 +308,7 @@ export default {
        wrongAudio.src = '/static/audio/wrong.mp3';
        wrongAudio.play();
      }
-	 this.recordLearningActivity(Number(currentQuestion.id, isCorrect));
+	 this.recordLearning(isCorrect);
    },
     
     // 记录学习进度
@@ -330,11 +330,11 @@ export default {
         // Continue with the practice experience even if the record update fails
       }
     },
-	async recordLearningActivity(signId, isCorrect) {
+	async recordLearning(isCorrect) {
 	  try {
 	    // 使用表单格式
 	    await http.post('/learning/record', {
-	      signId: signId,
+	      signId: this.currentQuestion.id,
 	      isCorrect: isCorrect
 	    }, {
 	      header: {
