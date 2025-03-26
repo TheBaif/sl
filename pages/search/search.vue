@@ -154,22 +154,31 @@ export default {
       }, 500)
     },
     
-   goToDetail(item, index) {
-     // 添加参数检查
-     if (!item || !item.id) {
+   goToDetail(index) {
+     try {
+       // Ensure we have valid data
+       if (!this.searchResults || !this.searchResults[index]) {
+         throw new Error('无效的搜索结果项')
+       }
+       
+       const item = this.searchResults[index]
+       console.log('存储到本地的搜索结果项:', item)
+       
+       // Store the complete search results array
+       uni.setStorageSync('searchResults', this.searchResults)
+       
+       // Navigate to detail page
+       uni.navigateTo({
+         url: `/pages/detail/detail?index=${index}`
+       })
+     } catch (error) {
+       console.error('导航到详情页失败:', error)
        uni.showToast({
-         title: '数据不完整，无法查看详情',
+         title: '导航失败：' + (error.message || '未知错误'),
          icon: 'none'
-       });
-       return;
+       })
      }
-     
-     // 使用明确的ID参数
-     uni.navigateTo({
-       url: `/pages/detail/detail?id=${item.id}`
-     });
    },
-    
     async handleSearch() {
       if (!this.keyword.trim()) {
         uni.showToast({
@@ -187,9 +196,27 @@ export default {
           }
         })
         
+        console.log('搜索结果原始数据:', res.data)
+        
         if (res.statusCode === 200 && res.data.code === 0) {
-          this.searchResults = res.data.data || []
+          // Validate and ensure all necessary fields exist before storing
+          this.searchResults = (res.data.data || []).map(item => {
+            return {
+              id: item.id || 0,
+              name: item.name || '未知',
+              pinyin: item.pinyin || '',
+              gesture: item.gesture || '',
+              imageSrc: item.imageSrc || '',
+              wordVideoSrc: item.wordVideoSrc || '',
+              parentId: item.parentId,
+              parentName: item.parentName || '',
+              childId: item.childId,
+              childName: item.childName || ''
+            }
+          })
+          
           this.hasSearched = true
+          console.log('处理后的搜索结果:', this.searchResults)
           
           if (this.searchResults.length > 0) {
             this.saveSearchHistory()
@@ -206,8 +233,8 @@ export default {
       } finally {
         this.loading = false
       }
-    }
-  }
+	}
+}
 }
 </script>
 
