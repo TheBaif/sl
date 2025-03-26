@@ -49,7 +49,8 @@
               :key="index"
               @tap="searchByHistory(item)"
             >
-              {{item}}
+              <text>{{item}}</text>
+              <text class="delete-btn" @tap.stop="deleteHistoryItem(item)">×</text>
             </view>
           </view>
         </view>
@@ -65,7 +66,7 @@
 
 <script>
 import http from '@/utils/request.js'
-import detailHelper from '@/utils/detailHelper.js'
+
 export default {
   data() {
     return {
@@ -99,36 +100,101 @@ export default {
       }
     },
     
-    loadSearchHistory() {
-      const history = uni.getStorageSync('searchHistory')
-      if (history) {
-        this.searchHistory = JSON.parse(history)
+    // 从数据库加载搜索历史
+    async loadSearchHistory() {
+      try {
+        const res = await http.get('/user/search-history')
+        console.log('获取搜索历史返回:', res)
+        
+        if (res.statusCode === 200 && res.data.code === 0) {
+          this.searchHistory = res.data.data || []
+        } else {
+          console.error('获取搜索历史失败:', res.data?.message || '未知错误')
+        }
+      } catch (error) {
+        console.error('加载搜索历史出错:', error)
       }
     },
     
-    saveSearchHistory() {
-      if (this.keyword && this.keyword.trim()) {
-        let history = this.searchHistory
-        history = history.filter(item => item !== this.keyword)
-        history.unshift(this.keyword)
-        history = history.slice(0, 10)
-        this.searchHistory = history
-        uni.setStorageSync('searchHistory', JSON.stringify(history))
+    // 保存搜索历史到数据库
+    async saveSearchHistory() {
+      if (!this.keyword || !this.keyword.trim()) return
+      
+      try {
+        const res = await http.post('/user/search-history', {
+          history: [this.keyword]
+        })
+        
+        if (res.statusCode === 200 && res.data.code === 0) {
+          // 重新加载搜索历史以确保显示最新数据
+          this.loadSearchHistory()
+        } else {
+          console.error('保存搜索历史失败:', res.data?.message || '未知错误')
+        }
+      } catch (error) {
+        console.error('保存搜索历史出错:', error)
       }
     },
     
-    clearHistory() {
+    // 删除单个历史记录
+    async deleteHistoryItem(keyword) {
+      try {
+        const res = await http.delete(`/user/search-history/${encodeURIComponent(keyword)}`)
+        
+        if (res.statusCode === 200 && res.data.code === 0) {
+          // 重新加载搜索历史
+          this.loadSearchHistory()
+          uni.showToast({
+            title: '删除成功',
+            icon: 'success',
+            duration: 1500
+          })
+        } else {
+          uni.showToast({
+            title: '删除失败',
+            icon: 'none',
+            duration: 1500
+          })
+        }
+      } catch (error) {
+        console.error('删除搜索历史失败:', error)
+        uni.showToast({
+          title: '删除失败',
+          icon: 'none',
+          duration: 1500
+        })
+      }
+    },
+    
+    // 清空所有历史
+    async clearHistory() {
       uni.showModal({
         title: '提示',
         content: '确定要清空搜索历史吗？',
-        success: (res) => {
+        success: async (res) => {
           if (res.confirm) {
-            this.searchHistory = []
-            uni.removeStorageSync('searchHistory')
-            uni.showToast({
-              title: '已清空',
-              icon: 'success'
-            })
+            try {
+              const response = await http.delete('/user/search-history')
+              
+              if (response.statusCode === 200 && response.data.code === 0) {
+                this.searchHistory = []
+                uni.showToast({
+                  title: '已清空',
+                  icon: 'success'
+                })
+              } else {
+                uni.showToast({
+                  title: '清空失败',
+                  icon: 'none'
+                })
+              }
+            } catch (error) {
+              console.error('清空搜索历史失败:', error)
+              uni.showToast({
+                title: '清空失败',
+                icon: 'none'
+              })
+            }
           }
         }
       })
@@ -154,31 +220,13 @@ export default {
       }, 500)
     },
     
-   goToDetail(index) {
-     try {
-       // Ensure we have valid data
-       if (!this.searchResults || !this.searchResults[index]) {
-         throw new Error('无效的搜索结果项')
-       }
-       
-       const item = this.searchResults[index]
-       console.log('存储到本地的搜索结果项:', item)
-       
-       // Store the complete search results array
-       uni.setStorageSync('searchResults', this.searchResults)
-       
-       // Navigate to detail page
-       uni.navigateTo({
-         url: `/pages/detail/detail?index=${index}`
-       })
-     } catch (error) {
-       console.error('导航到详情页失败:', error)
-       uni.showToast({
-         title: '导航失败：' + (error.message || '未知错误'),
-         icon: 'none'
-       })
-     }
-   },
+    goToDetail(index) {
+      uni.setStorageSync('searchResults', this.searchResults)
+      uni.navigateTo({
+        url: `/pages/detail/detail?index=${index}`
+      })
+    },
+    
     async handleSearch() {
       if (!this.keyword.trim()) {
         uni.showToast({
@@ -196,29 +244,12 @@ export default {
           }
         })
         
-        console.log('搜索结果原始数据:', res.data)
-        
         if (res.statusCode === 200 && res.data.code === 0) {
-          // Validate and ensure all necessary fields exist before storing
-          this.searchResults = (res.data.data || []).map(item => {
-            return {
-              id: item.id || 0,
-              name: item.name || '未知',
-              pinyin: item.pinyin || '',
-              gesture: item.gesture || '',
-              imageSrc: item.imageSrc || '',
-              wordVideoSrc: item.wordVideoSrc || '',
-              parentId: item.parentId,
-              parentName: item.parentName || '',
-              childId: item.childId,
-              childName: item.childName || ''
-            }
-          })
-          
+          this.searchResults = res.data.data || []
           this.hasSearched = true
-          console.log('处理后的搜索结果:', this.searchResults)
           
           if (this.searchResults.length > 0) {
+            // 保存到数据库搜索历史
             this.saveSearchHistory()
           }
         } else {
@@ -233,8 +264,8 @@ export default {
       } finally {
         this.loading = false
       }
-	}
-}
+    }
+  }
 }
 </script>
 
@@ -335,6 +366,18 @@ export default {
         margin: 10rpx;
         font-size: 28rpx;
         color: #666;
+        display: flex;
+        align-items: center;
+        
+        .delete-btn {
+          margin-left: 10rpx;
+          font-size: 28rpx;
+          color: #999;
+          width: 40rpx;
+          height: 40rpx;
+          text-align: center;
+          line-height: 40rpx;
+        }
         
         &:active {
           background-color: #f0f0f0;
