@@ -71,14 +71,6 @@
         </view>
       </view>
       
-      <!-- 导航按钮 -->
-      <view class="navigation-buttons">
-        <view class="nav-button" @tap="goBack">返回</view>
-        <view 
-          class="nav-button" 
-          @tap="recordLearning"
-        >标记已学习</view>
-      </view>
     </scroll-view>
   </view>
 </template>

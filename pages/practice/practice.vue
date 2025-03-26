@@ -52,8 +52,8 @@
         <text class="option-text">{{ option.name }}</text>
         
         <view class="option-result" v-if="selectedOption">
-          <text class="iconfont correct-icon" v-if="option.id === currentQuestion.id">&#xe64c;</text>
-          <text class="iconfont wrong-icon" v-else-if="option.id === selectedOption.id">&#xe651;</text>
+          <text class="option-result" v-if="selectedOption && option.id === currentQuestion.id">✓</text>
+          <text class="option-result" v-else-if="selectedOption && option.id === selectedOption.id && option.id !== currentQuestion.id">✗</text>
         </view>
       </view>
     </view>
@@ -64,9 +64,6 @@
         class="feedback-message"
         v-if="selectedOption"
       >
-        <text :class="isCorrect ? 'correct-message' : 'wrong-message'">
-          {{ isCorrect ? '太棒了！回答正确' : '再接再厉！回答错误' }}
-        </text>
       </view>
       
       <button 
