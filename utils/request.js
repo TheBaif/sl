@@ -104,5 +104,11 @@ export default {
       data,
       ...options
     })
+  },
+  delete(url,options={}){
+	  return request({
+		  url,
+		  method:'DELETE'
+	  })
   }
 }
