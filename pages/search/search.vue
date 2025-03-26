@@ -121,18 +121,35 @@ export default {
       if (!this.keyword || !this.keyword.trim()) return
       
       try {
+        // First update the local array, ensuring deduplication and 10-item limit
+        let updatedHistory = [...this.searchHistory]
+        
+        // Remove existing identical keywords
+        updatedHistory = updatedHistory.filter(item => item !== this.keyword)
+        
+        // Add new keyword to the front
+        updatedHistory.unshift(this.keyword)
+        
+        // Limit to maximum 10 records
+        updatedHistory = updatedHistory.slice(0, 10)
+        
+        // Send the entire history array to the backend
         const res = await http.post('/user/search-history', {
-          history: [this.keyword]
+          history: updatedHistory
         })
         
         if (res.statusCode === 200 && res.data.code === 0) {
-          // 重新加载搜索历史以确保显示最新数据
-          this.loadSearchHistory()
+          // Update local array
+          this.searchHistory = updatedHistory
         } else {
           console.error('保存搜索历史失败:', res.data?.message || '未知错误')
+          // If save fails, reload from backend
+          this.loadSearchHistory()
         }
       } catch (error) {
         console.error('保存搜索历史出错:', error)
+        // Reload on error
+        this.loadSearchHistory()
       }
     },
     
