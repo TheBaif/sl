@@ -74,28 +74,7 @@
 			}
 		},
 		{
-			"path" : "pages/recommendation/recommendation",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		},
-		{
 			"path" : "pages/custom-sign/custom-sign",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		},
-		{
-			"path" : "pages/recognition/recognition",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		},
-		{
-			"path" : "pages/practice-verification/index",
 			"style" : 
 			{
 				"navigationBarTitleText" : ""
