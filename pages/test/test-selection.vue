@@ -144,27 +144,27 @@ export default {
     },
     
     startTest() {
-      // 构建测验参数
-      const params = {
-        limit: this.questionCount,
-        difficulty: this.selectedDifficulty
-      };
-      
-      // 如果选择了分类，添加分类ID
-      if (this.testScope === 'category' && this.selectedCategory) {
-        params.category = this.selectedCategory.id;
-      }
-      
-      // 将参数序列化为URL查询字符串
-      const queryString = Object.entries(params)
-        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-        .join('&');
-      
-      // 导航到测验页面 - 修正路径
-      uni.navigateTo({
-        url: `/pages/test/test/test?${queryString}`
-      });
-    }
+  // 构建测验参数
+  const params = {
+    limit: this.questionCount,
+    difficulty: this.selectedDifficulty
+  };
+  
+  // 如果选择了分类，添加分类ID
+  if (this.testScope === 'category' && this.selectedCategory) {
+    params.category = this.selectedCategory.id;
+  }
+  
+  // 将参数序列化为URL查询字符串
+  const queryString = Object.entries(params)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join('&');
+  
+  // 导航到测验页面 - 修正路径
+  uni.navigateTo({
+    url: `/pages/test/test/test?${queryString}`
+  });
+}
   }
 }
 </script>
