@@ -306,7 +306,7 @@ export default {
     
     navigateToPractice() {
       uni.navigateTo({
-        url: '/pages/test/test-selection'
+        url: '/pages/practice/practice'
       });
     }
   }

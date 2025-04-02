@@ -86,41 +86,7 @@
 			{
 				"navigationBarTitleText" : ""
 			}
-		},
-		{
-			"path" : "pages/test/test-selection",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		},
-		{
-			"path" : "pages/test/test/test",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		},
-		{
-			"path" : "pages/test/test-result/test-result",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		},
-		{
-			"path" : "pages/test/test-history/test-history",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
 		}
-		
-		
-		
-		
-		
-		
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
